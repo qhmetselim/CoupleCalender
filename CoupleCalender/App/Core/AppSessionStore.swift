@@ -28,6 +28,8 @@ final class AppSessionStore {
         self.dataService = dataService
     }
 
+    var supabaseDataService: SupabaseDataService { dataService }
+
     func start() {
         guard !hasStarted else { return }
         hasStarted = true

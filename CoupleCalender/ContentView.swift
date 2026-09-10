@@ -23,8 +23,8 @@ struct ContentView: View {
                     ProfileSetupView(sessionStore: sessionStore)
                 case .signedInUnpaired:
                     PairingView(sessionStore: sessionStore)
-                case .signedInPaired:
-                    PairedPlaceholderView(sessionStore: sessionStore)
+                case let .signedInPaired(profile, partner, _):
+                    CalendarRootView(sessionStore: sessionStore, profile: profile, partner: partner)
                 case let .recoverableError(message):
                     RecoverableErrorView(message: message, sessionStore: sessionStore)
                 }

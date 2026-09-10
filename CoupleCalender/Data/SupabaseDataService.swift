@@ -47,6 +47,18 @@ final class SupabaseDataService {
             .value
     }
 
+    func fetchMemories(ownerID: UUID, startDay: CalendarDay, endDay: CalendarDay) async throws -> [Memory] {
+        try await client
+            .from("memories")
+            .select()
+            .eq("owner_id", value: ownerID.uuidString)
+            .gte("calendar_day", value: startDay.rawValue)
+            .lte("calendar_day", value: endDay.rawValue)
+            .order("calendar_day", ascending: true)
+            .execute()
+            .value
+    }
+
     func createOrRefreshInvite() async throws -> PartnerInvite {
         try await client
             .rpc("create_partner_invite")

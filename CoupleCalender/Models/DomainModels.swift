@@ -14,6 +14,48 @@ struct CalendarDay: RawRepresentable, Codable, Hashable, Sendable {
         rawValue = value
     }
 
+    init(date: Date, calendar: Calendar = .autoupdatingCurrent) {
+        let components = CalendarDay.storageCalendar(for: calendar)
+            .dateComponents([.year, .month, .day], from: date)
+        guard let year = components.year, let month = components.month, let day = components.day else {
+            preconditionFailure("A calendar day requires year, month, and day components.")
+        }
+        rawValue = String(format: "%04ld-%02ld-%02ld", year, month, day)
+    }
+
+    var year: Int { Int(rawValue.prefix(4)) ?? 0 }
+    var month: Int { Int(rawValue.dropFirst(5).prefix(2)) ?? 0 }
+    var day: Int { Int(rawValue.dropFirst(8)) ?? 0 }
+
+    func date(in calendar: Calendar = .autoupdatingCurrent) -> Date? {
+        let storageCalendar = CalendarDay.storageCalendar(for: calendar)
+        return storageCalendar.date(from: DateComponents(
+            calendar: storageCalendar,
+            timeZone: calendar.timeZone,
+            year: year,
+            month: month,
+            day: day
+        ))
+    }
+
+    func dateComponents(in calendar: Calendar = .autoupdatingCurrent) -> DateComponents {
+        let storageCalendar = CalendarDay.storageCalendar(for: calendar)
+        return DateComponents(
+            calendar: storageCalendar,
+            timeZone: calendar.timeZone,
+            year: year,
+            month: month,
+            day: day
+        )
+    }
+
+    private static func storageCalendar(for calendar: Calendar) -> Calendar {
+        var storageCalendar = Calendar(identifier: .gregorian)
+        storageCalendar.locale = calendar.locale
+        storageCalendar.timeZone = calendar.timeZone
+        return storageCalendar
+    }
+
     private static func isValid(_ value: String) -> Bool {
         let bytes = Array(value.utf8)
         guard bytes.count == 10,
@@ -32,7 +74,9 @@ struct CalendarDay: RawRepresentable, Codable, Hashable, Sendable {
         components.year = year
         components.month = month
         components.day = day
-        return components.date != nil
+        guard let date = components.date else { return false }
+        let normalized = components.calendar?.dateComponents([.year, .month, .day], from: date)
+        return normalized?.year == year && normalized?.month == month && normalized?.day == day
     }
 }
 
