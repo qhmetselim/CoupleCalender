@@ -1,6 +1,10 @@
 import Foundation
 import Supabase
 
+enum SupabaseDataServiceError: Error, Equatable, Sendable {
+    case notAuthenticated
+}
+
 final class SupabaseDataService {
     let client: SupabaseClient
 
@@ -57,6 +61,44 @@ final class SupabaseDataService {
             .order("calendar_day", ascending: true)
             .execute()
             .value
+    }
+
+    func createMemory(calendarDay: CalendarDay, content: String) async throws -> Memory {
+        guard let ownerID = client.auth.currentSession?.user.id else {
+            throw SupabaseDataServiceError.notAuthenticated
+        }
+        let payload = MemoryInsert(
+            ownerID: ownerID,
+            calendarDay: calendarDay,
+            content: try MemoryContentValidator.normalized(content)
+        )
+        return try await client
+            .from("memories")
+            .insert(payload)
+            .select()
+            .single()
+            .execute()
+            .value
+    }
+
+    func updateMemory(id: UUID, content: String) async throws -> Memory {
+        let payload = MemoryUpdate(content: try MemoryContentValidator.normalized(content))
+        return try await client
+            .from("memories")
+            .update(payload)
+            .eq("id", value: id.uuidString)
+            .select()
+            .single()
+            .execute()
+            .value
+    }
+
+    func deleteMemory(id: UUID) async throws {
+        _ = try await client
+            .from("memories")
+            .delete()
+            .eq("id", value: id.uuidString)
+            .execute()
     }
 
     func createOrRefreshInvite() async throws -> PartnerInvite {

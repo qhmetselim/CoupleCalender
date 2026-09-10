@@ -54,4 +54,31 @@ enum AppErrorMessage {
         }
         return "Bağlantı işlemi tamamlanamadı. Lütfen tekrar dene."
     }
+
+    static func memory(_ error: Error) -> String {
+        if let validationError = error as? MemoryContentValidationError {
+            switch validationError {
+            case .empty:
+                return "Anı boş bırakılamaz."
+            case .tooLong:
+                return "Anı 10.000 karakteri geçemez."
+            }
+        }
+        if let serviceError = error as? SupabaseDataServiceError,
+           serviceError == .notAuthenticated {
+            return "Oturumun sona ermiş. Lütfen tekrar giriş yap."
+        }
+
+        let value = error.localizedDescription.lowercased()
+        if value.contains("duplicate key") || value.contains("memories_owner_id_calendar_day_key") {
+            return "Bu gün için zaten bir anı bulunuyor."
+        }
+        if value.contains("permission denied") || value.contains("row-level security") {
+            return "Bu anı üzerinde değişiklik yapma yetkin yok."
+        }
+        if value.contains("unauthorized") || value.contains("jwt") || value.contains("not authenticated") {
+            return "Oturumun sona ermiş. Lütfen tekrar giriş yap."
+        }
+        return "Anı işlemi tamamlanamadı. Lütfen tekrar dene."
+    }
 }

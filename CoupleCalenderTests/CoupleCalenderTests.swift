@@ -103,4 +103,38 @@ struct CoupleCalenderTests {
         #expect(yearRange.end.rawValue == "2026-12-31")
     }
 
+    @Test func memoryContentValidationMatchesDatabaseConstraints() throws {
+        #expect(try MemoryContentValidator.normalized("  hello world  ") == "hello world")
+        #expect(MemoryContentValidator.characterCount(String(repeating: "a", count: 10_000)) == 10_000)
+
+        var rejectedEmpty = false
+        do {
+            _ = try MemoryContentValidator.normalized(" \n\t ")
+        } catch MemoryContentValidationError.empty {
+            rejectedEmpty = true
+        }
+        #expect(rejectedEmpty)
+
+        var rejectedTooLong = false
+        do {
+            _ = try MemoryContentValidator.normalized(String(repeating: "a", count: 10_001))
+        } catch MemoryContentValidationError.tooLong {
+            rejectedTooLong = true
+        }
+        #expect(rejectedTooLong)
+    }
+
+    @Test func futureDayRuleDistinguishesPastTodayAndFuture() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(identifier: "Europe/Istanbul"))
+        let engine = CalendarEngine(calendar: calendar)
+        let today = CalendarDay(date: Date(), calendar: calendar)
+        let past = engine.adding(.day, value: -1, to: today)
+        let future = engine.adding(.day, value: 1, to: today)
+
+        #expect(engine.date(for: past) < Date())
+        #expect(engine.date(for: today) <= Date())
+        #expect(engine.date(for: future) > Date())
+    }
+
 }

@@ -149,6 +149,53 @@ struct Memory: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
+struct MemoryInsert: Codable, Sendable {
+    let ownerID: UUID
+    let calendarDay: CalendarDay
+    let content: String
+
+    enum CodingKeys: String, CodingKey {
+        case ownerID = "owner_id"
+        case calendarDay = "calendar_day"
+        case content
+    }
+}
+
+struct MemoryUpdate: Codable, Sendable {
+    let content: String
+}
+
+enum MemoryContentValidationError: LocalizedError, Sendable {
+    case empty
+    case tooLong
+
+    var errorDescription: String? {
+        switch self {
+        case .empty:
+            "Memory content cannot be empty."
+        case .tooLong:
+            "Memory content cannot exceed 10,000 characters."
+        }
+    }
+}
+
+enum MemoryContentValidator {
+    static let maximumCharacterCount = 10_000
+
+    static func normalized(_ content: String) throws -> String {
+        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw MemoryContentValidationError.empty }
+        guard trimmed.unicodeScalars.count <= maximumCharacterCount else {
+            throw MemoryContentValidationError.tooLong
+        }
+        return trimmed
+    }
+
+    static func characterCount(_ content: String) -> Int {
+        content.unicodeScalars.count
+    }
+}
+
 struct MemoryReaction: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     let memoryID: UUID
