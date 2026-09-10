@@ -20,6 +20,8 @@ struct WeekCalendarView: View {
                             isToday: day == store.engine.today(),
                             isSelected: day == store.selectedDate,
                             hasMemory: store.memory(on: day) != nil,
+                            dayColor: store.dayColor(on: day).map { DayColorPalette.color(for: $0.colorKey) },
+                            reactionDisplayValue: store.reactionDisplayValue(on: day),
                             compact: false
                         ) {
                             store.select(day)

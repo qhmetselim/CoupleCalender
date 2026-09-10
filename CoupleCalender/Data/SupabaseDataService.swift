@@ -63,6 +63,102 @@ final class SupabaseDataService {
             .value
     }
 
+    func fetchReactionCatalog() async throws -> [ReactionCatalogItem] {
+        try await client
+            .from("reaction_catalog")
+            .select()
+            .eq("is_active", value: true)
+            .order("reaction_set", ascending: true)
+            .order("reaction_key", ascending: true)
+            .execute()
+            .value
+    }
+
+    func fetchReactions(memoryIDs: [UUID]) async throws -> [MemoryReaction] {
+        guard !memoryIDs.isEmpty else { return [] }
+        return try await client
+            .from("memory_reactions")
+            .select()
+            .in("memory_id", values: memoryIDs.map(\.uuidString))
+            .execute()
+            .value
+    }
+
+    func fetchDayColors(ownerID: UUID, startDay: CalendarDay, endDay: CalendarDay) async throws -> [DayColor] {
+        try await client
+            .from("day_colors")
+            .select()
+            .eq("calendar_owner_id", value: ownerID.uuidString)
+            .gte("calendar_day", value: startDay.rawValue)
+            .lte("calendar_day", value: endDay.rawValue)
+            .order("calendar_day", ascending: true)
+            .execute()
+            .value
+    }
+
+    func upsertReaction(for memoryID: UUID, reactionSet: String, reactionKey: String) async throws -> MemoryReaction {
+        guard let reactorID = client.auth.currentSession?.user.id else {
+            throw SupabaseDataServiceError.notAuthenticated
+        }
+        let payload = MemoryReactionUpsert(
+            memoryID: memoryID,
+            reactorID: reactorID,
+            reactionSet: reactionSet,
+            reactionKey: reactionKey
+        )
+        return try await client
+            .from("memory_reactions")
+            .upsert(payload, onConflict: "memory_id,reactor_id")
+            .select()
+            .single()
+            .execute()
+            .value
+    }
+
+    func deleteReaction(for memoryID: UUID) async throws {
+        guard let reactorID = client.auth.currentSession?.user.id else {
+            throw SupabaseDataServiceError.notAuthenticated
+        }
+        _ = try await client
+            .from("memory_reactions")
+            .delete()
+            .eq("memory_id", value: memoryID.uuidString)
+            .eq("reactor_id", value: reactorID.uuidString)
+            .execute()
+    }
+
+    func upsertDayColor(for memory: Memory, colorKey: String) async throws -> DayColor {
+        guard let assignedByID = client.auth.currentSession?.user.id else {
+            throw SupabaseDataServiceError.notAuthenticated
+        }
+        let payload = DayColorUpsert(
+            calendarOwnerID: memory.ownerID,
+            calendarDay: memory.calendarDay,
+            assignedByID: assignedByID,
+            colorKey: colorKey
+        )
+        return try await client
+            .from("day_colors")
+            .upsert(payload, onConflict: "calendar_owner_id,calendar_day")
+            .select()
+            .single()
+            .execute()
+            .value
+    }
+
+    func deleteDayColor(for memory: Memory) async throws {
+        guard let assignedByID = client.auth.currentSession?.user.id else {
+            throw SupabaseDataServiceError.notAuthenticated
+        }
+        _ = try await client
+            .from("day_colors")
+            .delete()
+            .eq("calendar_owner_id", value: memory.ownerID.uuidString)
+            .eq("calendar_day", value: memory.calendarDay.rawValue)
+            .eq("assigned_by_id", value: assignedByID.uuidString)
+            .execute()
+    }
+
     func createMemory(calendarDay: CalendarDay, content: String) async throws -> Memory {
         guard let ownerID = client.auth.currentSession?.user.id else {
             throw SupabaseDataServiceError.notAuthenticated

@@ -81,4 +81,26 @@ enum AppErrorMessage {
         }
         return "Anı işlemi tamamlanamadı. Lütfen tekrar dene."
     }
+
+    static func reaction(_ error: Error) -> String {
+        if error is SupabaseDataServiceError {
+            return "Oturumun sona ermiş olabilir. Lütfen tekrar giriş yap."
+        }
+        let value = error.localizedDescription.lowercased()
+        if value.contains("permission") || value.contains("row-level security") || value.contains("42501") {
+            return "Bu anıya tepki verme yetkin yok."
+        }
+        return "Tepki kaydedilemedi. Lütfen tekrar dene."
+    }
+
+    static func dayColor(_ error: Error) -> String {
+        if error is SupabaseDataServiceError {
+            return "Oturumun sona ermiş olabilir. Lütfen tekrar giriş yap."
+        }
+        let value = error.localizedDescription.lowercased()
+        if value.contains("permission") || value.contains("row-level security") || value.contains("42501") {
+            return "Bu güne renk verme yetkin yok."
+        }
+        return "Gün rengi kaydedilemedi. Lütfen tekrar dene."
+    }
 }

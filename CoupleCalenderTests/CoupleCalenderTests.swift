@@ -137,4 +137,13 @@ struct CoupleCalenderTests {
         #expect(engine.date(for: future) > Date())
     }
 
+    @Test func dayColorPaletteUsesStableKeys() {
+        let keys = DayColorPalette.options.map(\.key)
+
+        #expect(keys.count == 12)
+        #expect(Set(keys).count == keys.count)
+        #expect(DayColorPalette.color(for: "rose") != DayColorPalette.color(for: "unknown"))
+        #expect(DayColorPalette.label(for: "blue") == "Mavi")
+    }
+
 }

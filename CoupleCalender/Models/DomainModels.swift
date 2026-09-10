@@ -223,12 +223,42 @@ struct ReactionCatalogItem: Codable, Hashable, Sendable {
     let assetName: String?
     let isActive: Bool
 
+    var stableID: String { "\(reactionSet):\(reactionKey)" }
+
     enum CodingKeys: String, CodingKey {
         case reactionSet = "reaction_set"
         case reactionKey = "reaction_key"
         case displayValue = "display_value"
         case assetName = "asset_name"
         case isActive = "is_active"
+    }
+}
+
+struct MemoryReactionUpsert: Codable, Sendable {
+    let memoryID: UUID
+    let reactorID: UUID
+    let reactionSet: String
+    let reactionKey: String
+
+    enum CodingKeys: String, CodingKey {
+        case memoryID = "memory_id"
+        case reactorID = "reactor_id"
+        case reactionSet = "reaction_set"
+        case reactionKey = "reaction_key"
+    }
+}
+
+struct DayColorUpsert: Codable, Sendable {
+    let calendarOwnerID: UUID
+    let calendarDay: CalendarDay
+    let assignedByID: UUID
+    let colorKey: String
+
+    enum CodingKeys: String, CodingKey {
+        case calendarOwnerID = "calendar_owner_id"
+        case calendarDay = "calendar_day"
+        case assignedByID = "assigned_by_id"
+        case colorKey = "color_key"
     }
 }
 

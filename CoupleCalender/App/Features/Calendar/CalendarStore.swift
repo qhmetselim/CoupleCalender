@@ -12,7 +12,10 @@ final class CalendarStore {
     private let profileID: UUID
     private let partnerID: UUID
     private var memoryCache: [MemoryRangeKey: [Memory]] = [:]
+    private var reactionCache: [MemoryRangeKey: [MemoryReaction]] = [:]
+    private var dayColorCache: [MemoryRangeKey: [DayColor]] = [:]
     private var loadingKey: MemoryRangeKey?
+    private var hasLoadedReactionCatalog = false
 
     var selectedDate: CalendarDay
     var mode: CalendarMode = .month
@@ -22,6 +25,13 @@ final class CalendarStore {
     private(set) var errorMessage: String?
     private(set) var isMutating = false
     private(set) var mutationError: String?
+    private(set) var reactions: [MemoryReaction] = []
+    private(set) var dayColors: [DayColor] = []
+    private(set) var reactionCatalog: [ReactionCatalogItem] = []
+    private(set) var isLoadingReactionCatalog = false
+    private(set) var isReactionMutating = false
+    private(set) var isDayColorMutating = false
+    private(set) var decorationError: String?
 
     init(
         dataService: SupabaseDataService,
@@ -72,6 +82,32 @@ final class CalendarStore {
 
     func memory(on day: CalendarDay) -> Memory? {
         memoryByDay[day]
+    }
+
+    func reaction(for memory: Memory) -> MemoryReaction? {
+        let expectedReactorID = memory.ownerID == profileID ? partnerID : profileID
+        return reactions.first { $0.memoryID == memory.id && $0.reactorID == expectedReactorID }
+    }
+
+    func reaction(on day: CalendarDay) -> MemoryReaction? {
+        guard let memory = memory(on: day) else { return nil }
+        return reaction(for: memory)
+    }
+
+    func reactionDisplayValue(on day: CalendarDay) -> String? {
+        guard let reaction = reaction(on: day) else { return nil }
+        return reactionCatalog.first {
+            $0.reactionSet == reaction.reactionSet && $0.reactionKey == reaction.reactionKey
+        }?.displayValue ?? reaction.reactionKey
+    }
+
+    func dayColor(on day: CalendarDay) -> DayColor? {
+        guard memory(on: day) != nil else { return nil }
+        return dayColors.first { $0.calendarOwnerID == currentOwnerID && $0.calendarDay == day }
+    }
+
+    var canInteractWithDecoration: Bool {
+        owner == .partner
     }
 
     func select(_ day: CalendarDay) {
@@ -176,6 +212,100 @@ final class CalendarStore {
         }
     }
 
+    func loadReactionCatalogIfNeeded() async {
+        guard !hasLoadedReactionCatalog else { return }
+        isLoadingReactionCatalog = true
+        defer { isLoadingReactionCatalog = false }
+        do {
+            let catalog = try await dataService.fetchReactionCatalog()
+            try Task.checkCancellation()
+            reactionCatalog = catalog
+            hasLoadedReactionCatalog = true
+            decorationError = nil
+        } catch is CancellationError {
+            return
+        } catch {
+            decorationError = "Tepkiler yüklenemedi. Lütfen tekrar dene."
+        }
+    }
+
+    func setReaction(_ item: ReactionCatalogItem, for memory: Memory) async -> Bool {
+        guard owner == .partner, memory.ownerID == partnerID else {
+            decorationError = "Bu anıya tepki verme yetkin yok."
+            return false
+        }
+        guard item.isActive else { return false }
+        isReactionMutating = true
+        decorationError = nil
+        defer { isReactionMutating = false }
+        do {
+            let reaction = try await dataService.upsertReaction(
+                for: memory.id,
+                reactionSet: item.reactionSet,
+                reactionKey: item.reactionKey
+            )
+            applyReactionUpsert(reaction)
+            return true
+        } catch {
+            decorationError = AppErrorMessage.reaction(error)
+            return false
+        }
+    }
+
+    func removeReaction(for memory: Memory) async -> Bool {
+        guard owner == .partner, memory.ownerID == partnerID else {
+            decorationError = "Bu anının tepkisini değiştirme yetkin yok."
+            return false
+        }
+        isReactionMutating = true
+        decorationError = nil
+        defer { isReactionMutating = false }
+        do {
+            try await dataService.deleteReaction(for: memory.id)
+            applyReactionRemoval(memoryID: memory.id, reactorID: profileID)
+            return true
+        } catch {
+            decorationError = AppErrorMessage.reaction(error)
+            return false
+        }
+    }
+
+    func setDayColor(_ colorKey: String, for memory: Memory) async -> Bool {
+        guard owner == .partner, memory.ownerID == partnerID else {
+            decorationError = "Bu güne renk verme yetkin yok."
+            return false
+        }
+        isDayColorMutating = true
+        decorationError = nil
+        defer { isDayColorMutating = false }
+        do {
+            let color = try await dataService.upsertDayColor(for: memory, colorKey: colorKey)
+            applyDayColorUpsert(color)
+            return true
+        } catch {
+            decorationError = AppErrorMessage.dayColor(error)
+            return false
+        }
+    }
+
+    func removeDayColor(for memory: Memory) async -> Bool {
+        guard owner == .partner, memory.ownerID == partnerID else {
+            decorationError = "Bu günün rengini değiştirme yetkin yok."
+            return false
+        }
+        isDayColorMutating = true
+        decorationError = nil
+        defer { isDayColorMutating = false }
+        do {
+            try await dataService.deleteDayColor(for: memory)
+            applyDayColorRemoval(ownerID: memory.ownerID, day: memory.calendarDay, assignedByID: profileID)
+            return true
+        } catch {
+            decorationError = AppErrorMessage.dayColor(error)
+            return false
+        }
+    }
+
     func loadVisiblePeriod(forceReload: Bool = false) async {
         let range = visibleRange
         let key = MemoryRangeKey(
@@ -186,15 +316,33 @@ final class CalendarStore {
 
         if !forceReload, let cached = memoryCache[key] {
             memories = cached
+            if let cachedReactions = reactionCache[key] {
+                reactions = cachedReactions
+            } else {
+                reactions = []
+            }
+            if let cachedDayColors = dayColorCache[key] {
+                dayColors = cachedDayColors
+            } else {
+                dayColors = []
+            }
             errorMessage = nil
+            await loadReactionCatalogIfNeeded()
+            if reactionCache[key] == nil || dayColorCache[key] == nil {
+                await loadDecorations(for: key, memoryIDs: cached.map(\.id))
+            }
             return
         }
 
         if forceReload {
             memoryCache[key] = nil
+            reactionCache[key] = nil
+            dayColorCache[key] = nil
         }
 
         memories = []
+        reactions = []
+        dayColors = []
         loadingKey = key
         isLoading = true
         errorMessage = nil
@@ -216,6 +364,8 @@ final class CalendarStore {
             if currentMemoryRangeKey == key {
                 memories = fetched
             }
+            await loadReactionCatalogIfNeeded()
+            await loadDecorations(for: key, memoryIDs: fetched.map(\.id))
         } catch is CancellationError {
             return
         } catch {
@@ -287,8 +437,41 @@ final class CalendarStore {
 
     private func applyDeletedMemory(_ memory: Memory) {
         mutateCachedMemories { _, cached in cached.filter { $0.id != memory.id } }
+        mutateCachedReactions { _, cached in cached.filter { $0.memoryID != memory.id } }
+        mutateCachedDayColors { key, cached in
+            guard key.ownerID == memory.ownerID else { return cached }
+            return cached.filter { $0.calendarDay != memory.calendarDay }
+        }
         memories.removeAll { $0.id == memory.id }
+        reactions.removeAll { $0.memoryID == memory.id }
+        dayColors.removeAll { $0.calendarOwnerID == memory.ownerID && $0.calendarDay == memory.calendarDay }
         mutationError = nil
+    }
+
+    private func loadDecorations(for key: MemoryRangeKey, memoryIDs: [UUID]) async {
+        do {
+            let fetched = try await dataService.fetchReactions(memoryIDs: memoryIDs)
+            reactionCache[key] = fetched
+            if currentMemoryRangeKey == key { reactions = fetched }
+        } catch is CancellationError {
+            return
+        } catch {
+            decorationError = "Tepkiler yüklenemedi. Lütfen tekrar dene."
+        }
+
+        do {
+            let fetched = try await dataService.fetchDayColors(
+                ownerID: key.ownerID,
+                startDay: key.startDay,
+                endDay: key.endDay
+            )
+            dayColorCache[key] = fetched
+            if currentMemoryRangeKey == key { dayColors = fetched }
+        } catch is CancellationError {
+            return
+        } catch {
+            decorationError = "Gün renkleri yüklenemedi. Lütfen tekrar dene."
+        }
     }
 
     private func mutateCachedMemories(_ mutation: (MemoryRangeKey, [Memory]) -> [Memory]) {
@@ -297,6 +480,77 @@ final class CalendarStore {
             guard let cached = memoryCache[key] else { continue }
             memoryCache[key] = mutation(key, cached).sorted { $0.calendarDay.rawValue < $1.calendarDay.rawValue }
         }
+    }
+
+    private func mutateCachedReactions(_ mutation: (MemoryRangeKey, [MemoryReaction]) -> [MemoryReaction]) {
+        let keys = Array(reactionCache.keys)
+        for key in keys {
+            guard let cached = reactionCache[key] else { continue }
+            reactionCache[key] = mutation(key, cached)
+        }
+    }
+
+    private func mutateCachedDayColors(_ mutation: (MemoryRangeKey, [DayColor]) -> [DayColor]) {
+        let keys = Array(dayColorCache.keys)
+        for key in keys {
+            guard let cached = dayColorCache[key] else { continue }
+            dayColorCache[key] = mutation(key, cached)
+        }
+    }
+
+    func applyReactionUpsert(_ reaction: MemoryReaction) {
+        mutateCachedReactions { key, cached in
+            guard key.ownerID == currentOwnerID,
+                  memoryCache[key]?.contains(where: { $0.id == reaction.memoryID }) == true else { return cached }
+            return upserting(reaction, into: cached)
+        }
+        if memories.contains(where: { $0.id == reaction.memoryID }) {
+            reactions = upserting(reaction, into: reactions)
+        }
+    }
+
+    func applyReactionRemoval(memoryID: UUID, reactorID: UUID) {
+        mutateCachedReactions { _, cached in
+            cached.filter { !($0.memoryID == memoryID && $0.reactorID == reactorID) }
+        }
+        reactions.removeAll { $0.memoryID == memoryID && $0.reactorID == reactorID }
+    }
+
+    func applyDayColorUpsert(_ color: DayColor) {
+        mutateCachedDayColors { key, cached in
+            guard key.ownerID == color.calendarOwnerID, key.contains(color.calendarDay) else { return cached }
+            return upserting(color, into: cached)
+        }
+        if currentOwnerID == color.calendarOwnerID, currentMemoryRangeKey.contains(color.calendarDay) {
+            dayColors = upserting(color, into: dayColors)
+        }
+    }
+
+    func applyDayColorRemoval(ownerID: UUID, day: CalendarDay, assignedByID: UUID) {
+        mutateCachedDayColors { _, cached in
+            cached.filter { !($0.calendarOwnerID == ownerID && $0.calendarDay == day && $0.assignedByID == assignedByID) }
+        }
+        dayColors.removeAll { $0.calendarOwnerID == ownerID && $0.calendarDay == day && $0.assignedByID == assignedByID }
+    }
+
+    private func upserting(_ reaction: MemoryReaction, into reactions: [MemoryReaction]) -> [MemoryReaction] {
+        var result = reactions
+        if let index = result.firstIndex(where: { $0.memoryID == reaction.memoryID && $0.reactorID == reaction.reactorID }) {
+            result[index] = reaction
+        } else {
+            result.append(reaction)
+        }
+        return result
+    }
+
+    private func upserting(_ color: DayColor, into colors: [DayColor]) -> [DayColor] {
+        var result = colors
+        if let index = result.firstIndex(where: { $0.calendarOwnerID == color.calendarOwnerID && $0.calendarDay == color.calendarDay }) {
+            result[index] = color
+        } else {
+            result.append(color)
+        }
+        return result
     }
 
     private func upserting(_ memory: Memory, into memories: [Memory]) -> [Memory] {

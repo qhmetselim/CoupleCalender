@@ -37,10 +37,16 @@ private struct MiniMonthView: View {
                             .font(.system(size: 8))
                             .foregroundStyle(day.month == month.month ? .primary : .tertiary)
                             .frame(maxWidth: .infinity, minHeight: 10)
+                            .background {
+                                if let color = store.dayColor(on: day) {
+                                    Circle()
+                                        .fill(DayColorPalette.color(for: color.colorKey).opacity(0.55))
+                                }
+                            }
                             .overlay(alignment: .bottom) {
                                 if store.memory(on: day) != nil {
                                     Circle()
-                                        .fill(.tint)
+                                        .fill(store.reactionDisplayValue(on: day) == nil ? Color.accentColor : Color.primary)
                                         .frame(width: 2, height: 2)
                                 }
                             }
