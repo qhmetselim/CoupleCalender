@@ -9,11 +9,25 @@ import SwiftUI
 
 @main
 struct CoupleCalenderApp: App {
-    private let dependencies = AppDependencies()
+    private let dependencies: AppDependencies
+    @State private var sessionStore: AppSessionStore?
+
+    init() {
+        let dependencies = AppDependencies()
+        self.dependencies = dependencies
+        _sessionStore = State(initialValue: dependencies.supabaseDataService.map {
+            AppSessionStore(dataService: $0)
+        })
+    }
 
     var body: some Scene {
         WindowGroup {
-            ContentView(configurationError: dependencies.configurationError)
+            if let sessionStore {
+                ContentView(sessionStore: sessionStore, configurationError: dependencies.configurationError)
+                    .task { sessionStore.start() }
+            } else {
+                ContentView(sessionStore: nil, configurationError: dependencies.configurationError)
+            }
         }
     }
 }

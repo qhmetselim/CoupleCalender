@@ -1,13 +1,4 @@
 import Foundation
-import Supabase
-
-final class SupabaseDataService {
-    let client: SupabaseClient
-
-    init(client: SupabaseClient) {
-        self.client = client
-    }
-}
 
 struct AppDependencies {
     let supabaseDataService: SupabaseDataService?

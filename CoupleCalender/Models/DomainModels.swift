@@ -225,6 +225,60 @@ struct YearlyReport: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
+struct PartnerInvite: Codable, Identifiable, Hashable, Sendable {
+    let id: UUID
+    let code: String
+    let expiresAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id = "invite_id"
+        case code = "invite_code"
+        case expiresAt = "expires_at"
+    }
+}
+
+struct PairingStatusResponse: Codable, Sendable {
+    let status: String
+    let coupleID: UUID?
+    let partnerID: UUID?
+    let pendingInviteExpiresAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case status
+        case coupleID = "couple_id"
+        case partnerID = "partner_id"
+        case pendingInviteExpiresAt = "pending_invite_expires_at"
+    }
+}
+
+struct PairingResultResponse: Codable, Sendable {
+    let coupleID: UUID
+    let partnerID: UUID
+
+    enum CodingKeys: String, CodingKey {
+        case coupleID = "couple_id"
+        case partnerID = "partner_id"
+    }
+}
+
+struct ProfileWrite: Codable, Sendable {
+    let id: UUID
+    let displayName: String
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case displayName = "display_name"
+    }
+}
+
+struct AcceptPartnerInviteParameters: Codable, Sendable {
+    let inputCode: String
+
+    enum CodingKeys: String, CodingKey {
+        case inputCode = "input_code"
+    }
+}
+
 enum JSONValue: Codable, Hashable, Sendable {
     case string(String)
     case number(Double)

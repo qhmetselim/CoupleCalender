@@ -8,26 +8,68 @@
 import SwiftUI
 
 struct ContentView: View {
+    let sessionStore: AppSessionStore?
     let configurationError: SupabaseConfigurationError?
 
     var body: some View {
-        VStack {
-            Image(systemName: configurationError == nil ? "checkmark.seal" : "exclamationmark.triangle")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text(configurationError == nil ? "CoupleCalender foundation hazır" : "Supabase yapılandırması gerekli")
-                .font(.headline)
-            if let configurationError {
-                Text(configurationError.localizedDescription)
-                    .font(.footnote)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.secondary)
+        Group {
+            if let sessionStore {
+                switch sessionStore.state {
+                case .loading:
+                    ProgressView("Yükleniyor…")
+                case .signedOut:
+                    AuthView(sessionStore: sessionStore)
+                case .signedInNeedsProfile:
+                    ProfileSetupView(sessionStore: sessionStore)
+                case .signedInUnpaired:
+                    PairingView(sessionStore: sessionStore)
+                case .signedInPaired:
+                    PairedPlaceholderView(sessionStore: sessionStore)
+                case let .recoverableError(message):
+                    RecoverableErrorView(message: message, sessionStore: sessionStore)
+                }
+            } else if let configurationError {
+                VStack(spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .imageScale(.large)
+                        .foregroundStyle(.tint)
+                    Text("Supabase yapılandırması gerekli")
+                        .font(.headline)
+                    Text(configurationError.localizedDescription)
+                        .font(.footnote)
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.secondary)
+                }
+                .padding()
             }
+        }
+        .animation(.default, value: sessionStore?.state)
+    }
+}
+
+private struct RecoverableErrorView: View {
+    let message: String
+    let sessionStore: AppSessionStore
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "arrow.clockwise.circle")
+                .font(.largeTitle)
+                .foregroundStyle(.tint)
+            Text(message).multilineTextAlignment(.center)
+            Button("Tekrar Dene") {
+                Task { await sessionStore.retry() }
+            }
+            .buttonStyle(.borderedProminent)
+            Button("Oturumu Kapat") {
+                Task { await sessionStore.signOut() }
+            }
+            .buttonStyle(.bordered)
         }
         .padding()
     }
 }
 
 #Preview {
-    ContentView(configurationError: nil)
+    ContentView(sessionStore: nil, configurationError: nil)
 }
