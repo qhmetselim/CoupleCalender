@@ -8,17 +8,26 @@
 import SwiftUI
 
 struct ContentView: View {
+    let configurationError: SupabaseConfigurationError?
+
     var body: some View {
         VStack {
-            Image(systemName: "globe")
+            Image(systemName: configurationError == nil ? "checkmark.seal" : "exclamationmark.triangle")
                 .imageScale(.large)
                 .foregroundStyle(.tint)
-            Text("Hello, world!")
+            Text(configurationError == nil ? "CoupleCalender foundation hazır" : "Supabase yapılandırması gerekli")
+                .font(.headline)
+            if let configurationError {
+                Text(configurationError.localizedDescription)
+                    .font(.footnote)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding()
     }
 }
 
 #Preview {
-    ContentView()
+    ContentView(configurationError: nil)
 }

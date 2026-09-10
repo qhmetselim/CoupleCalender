@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		106D6F373052DBA400111FE4 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 106D6F363052DBA400111FE4 /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		106D6F193052D91500111FE4 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +31,7 @@
 		106D6F0B3052D91500111FE4 /* CoupleCalender.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CoupleCalender.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		106D6F183052D91500111FE4 /* CoupleCalenderTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CoupleCalenderTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		106D6F223052D91500111FE4 /* CoupleCalenderUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CoupleCalenderUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		106D6F3D3052E00000111FE4 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -52,6 +57,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				106D6F373052DBA400111FE4 /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -75,6 +81,7 @@
 		106D6F023052D91500111FE4 = {
 			isa = PBXGroup;
 			children = (
+				106D6F3E3052E00000111FE4 /* Config */,
 				106D6F0D3052D91500111FE4 /* CoupleCalender */,
 				106D6F1B3052D91500111FE4 /* CoupleCalenderTests */,
 				106D6F253052D91500111FE4 /* CoupleCalenderUITests */,
@@ -90,6 +97,15 @@
 				106D6F223052D91500111FE4 /* CoupleCalenderUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		106D6F3E3052E00000111FE4 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				106D6F3D3052E00000111FE4 /* Base.xcconfig */,
+			);
+			name = Config;
+			path = Config;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -112,6 +128,7 @@
 			);
 			name = CoupleCalender;
 			packageProductDependencies = (
+				106D6F363052DBA400111FE4 /* Supabase */,
 			);
 			productName = CoupleCalender;
 			productReference = 106D6F0B3052D91500111FE4 /* CoupleCalender.app */;
@@ -195,6 +212,9 @@
 			);
 			mainGroup = 106D6F023052D91500111FE4;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				106D6F353052DBA400111FE4 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 106D6F0C3052D91500111FE4 /* Products */;
 			projectDirPath = "";
@@ -271,6 +291,7 @@
 /* Begin XCBuildConfiguration section */
 		106D6F2A3052D91500111FE4 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 106D6F3D3052E00000111FE4 /* Base.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -335,6 +356,7 @@
 		};
 		106D6F2B3052D91500111FE4 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 106D6F3D3052E00000111FE4 /* Base.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -392,6 +414,7 @@
 		};
 		106D6F2D3052D91500111FE4 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 106D6F3D3052E00000111FE4 /* Base.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -424,6 +447,7 @@
 		};
 		106D6F2E3052D91500111FE4 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 106D6F3D3052E00000111FE4 /* Base.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -578,6 +602,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		106D6F353052DBA400111FE4 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		106D6F363052DBA400111FE4 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 106D6F353052DBA400111FE4 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 106D6F033052D91500111FE4 /* Project object */;
 }

@@ -1,0 +1,9 @@
+// Shared build settings. Machine-specific values belong in Config/Local.xcconfig.
+SUPABASE_URL =
+SUPABASE_PUBLISHABLE_KEY =
+SUPABASE_URL_SEPARATOR = /
+
+#include? "Local.xcconfig"
+
+INFOPLIST_KEY_SUPABASE_URL = $(SUPABASE_URL)
+INFOPLIST_KEY_SUPABASE_PUBLISHABLE_KEY = $(SUPABASE_PUBLISHABLE_KEY)

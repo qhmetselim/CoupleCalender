@@ -1,0 +1,4 @@
+// Copy this file to Local.xcconfig and fill in the publishable client values.
+// Local.xcconfig is gitignored and must never contain a service_role or secret key.
+SUPABASE_URL = https:$(SUPABASE_URL_SEPARATOR)$(SUPABASE_URL_SEPARATOR)your-project-ref.supabase.co
+SUPABASE_PUBLISHABLE_KEY = sb_publishable_replace_me
