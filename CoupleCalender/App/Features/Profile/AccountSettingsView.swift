@@ -9,6 +9,8 @@ struct AccountSettingsView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var isLeavingCouple = false
+    @State private var isConfirmingAccountDeletion = false
+    @State private var isDeletingAccount = false
     @State private var isEditingProfile = false
     @State private var editedDisplayName = ""
 
@@ -47,6 +49,23 @@ struct AccountSettingsView: View {
             Button("Vazgeç", role: .cancel) {}
         } message: {
             Text("Anıların silinmez; ancak birbirinizin takvimlerine erişiminiz sona erer.")
+        }
+        .confirmationDialog(
+            "Hesabını kalıcı olarak silmek ister misin?",
+            isPresented: $isConfirmingAccountDeletion,
+            titleVisibility: .visible
+        ) {
+            Button("Hesabımı Kalıcı Olarak Sil", role: .destructive) {
+                isDeletingAccount = true
+                Task {
+                    if await sessionStore.deleteAccount() == false {
+                        isDeletingAccount = false
+                    }
+                }
+            }
+            Button("Vazgeç", role: .cancel) {}
+        } message: {
+            Text("Profilin, anıların ve hesapla ilişkili veriler kalıcı olarak silinir. Bu işlem geri alınamaz.")
         }
     }
 
@@ -156,6 +175,22 @@ struct AccountSettingsView: View {
             }
             .frame(maxWidth: .infinity)
             .buttonStyle(.bordered)
+
+            Button(role: .destructive) {
+                isConfirmingAccountDeletion = true
+            } label: {
+                HStack {
+                    Text("Hesabımı sil")
+                    Spacer()
+                    if isDeletingAccount {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .buttonStyle(.bordered)
+            .disabled(isDeletingAccount)
         }
         .appCard()
     }

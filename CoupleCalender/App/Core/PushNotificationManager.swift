@@ -163,7 +163,13 @@ final class PushNotificationManager {
 
     func removeCurrentDeviceToken() async {
         guard let deviceToken else { return }
+        self.deviceToken = nil
         try? await dataService.removeDeviceToken(token: deviceToken)
+    }
+
+    func clearPendingNavigation() {
+        pendingNavigation = nil
+        navigationRevision += 1
     }
 
     func consumePendingNavigation(validatingPartnerID partnerID: UUID) -> NotificationNavigationTarget? {

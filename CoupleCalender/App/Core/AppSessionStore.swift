@@ -104,6 +104,8 @@ final class AppSessionStore {
 
     func signOut() async {
         PartnerWidgetSnapshotWriter.clear()
+        pendingWidgetDeepLink = nil
+        pushNotifications.clearPendingNavigation()
         await pushNotifications.removeCurrentDeviceToken()
         do {
             try await dataService.client.auth.signOut()
@@ -182,12 +184,38 @@ final class AppSessionStore {
         state = .loading
         clearMessage()
         PartnerWidgetSnapshotWriter.clear()
+        pendingWidgetDeepLink = nil
         do {
             try await dataService.leaveActiveCouple()
             await reloadAuthenticatedState()
         } catch {
             await reloadAuthenticatedState()
             showError("Bağlantı sonlandırılamadı. Lütfen tekrar dene.")
+        }
+    }
+
+    func deleteAccount() async -> Bool {
+        guard currentSession != nil || dataService.client.auth.currentSession != nil else {
+            state = .signedOut
+            return false
+        }
+
+        clearMessage()
+        PartnerWidgetSnapshotWriter.clear()
+        pendingWidgetDeepLink = nil
+        pushNotifications.clearPendingNavigation()
+        await pushNotifications.removeCurrentDeviceToken()
+
+        do {
+            try await dataService.deleteCurrentAccount()
+            try? await dataService.client.auth.signOut()
+            currentSession = nil
+            latestInvite = nil
+            state = .signedOut
+            return true
+        } catch {
+            showError("Hesap silinemedi. Lütfen tekrar dene.")
+            return false
         }
     }
 
@@ -221,6 +249,8 @@ final class AppSessionStore {
             }
             if currentSession?.user.id != session.user.id {
                 PartnerWidgetSnapshotWriter.clear()
+                pendingWidgetDeepLink = nil
+                pushNotifications.clearPendingNavigation()
             }
             currentSession = session
             await reloadAuthenticatedState()
@@ -228,6 +258,8 @@ final class AppSessionStore {
             currentSession = nil
             latestInvite = nil
             PartnerWidgetSnapshotWriter.clear()
+            pendingWidgetDeepLink = nil
+            pushNotifications.clearPendingNavigation()
             state = .signedOut
             clearMessage()
         case .tokenRefreshed, .passwordRecovery, .mfaChallengeVerified:

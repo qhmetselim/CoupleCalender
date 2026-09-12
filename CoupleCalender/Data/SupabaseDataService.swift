@@ -286,6 +286,13 @@ final class SupabaseDataService {
             .execute()
     }
 
+    func deleteCurrentAccount() async throws {
+        guard client.auth.currentSession != nil else {
+            throw SupabaseDataServiceError.notAuthenticated
+        }
+        _ = try await client.functions.invoke("delete-account")
+    }
+
     func registerDeviceToken(
         token: String,
         environment: String,
