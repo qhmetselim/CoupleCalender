@@ -41,6 +41,7 @@
 		106D6F223052D91500111FE4 /* CoupleCalenderUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CoupleCalenderUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4ED478D4CF114730A1D8165F78F46A07 /* CoupleCalenderWidget.appex */ = {isa = PBXFileReference; explicitFileType = "com.apple.product-type.app-extension"; includeInIndex = 0; path = CoupleCalenderWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7CEA9A520E0345EBAE4D497981035EE1 /* CoupleCalenderWidget-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = CoupleCalenderWidget-Info.plist; sourceTree = "<group>"; };
+		7CEA9A530E0345EBAE4D497981035EE1 /* CoupleCalender-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = CoupleCalender-Info.plist; sourceTree = "<group>"; };
 		106D6F3D3052E00000111FE4 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -133,6 +134,7 @@
 			isa = PBXGroup;
 			children = (
 				106D6F3D3052E00000111FE4 /* Base.xcconfig */,
+				7CEA9A530E0345EBAE4D497981035EE1 /* CoupleCalender-Info.plist */,
 				7CEA9A520E0345EBAE4D497981035EE1 /* CoupleCalenderWidget-Info.plist */,
 			);
 			name = Config;
@@ -517,7 +519,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = Y35SHANXGY;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Config/CoupleCalender-Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -552,7 +555,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = Y35SHANXGY;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Config/CoupleCalender-Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

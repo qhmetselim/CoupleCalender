@@ -176,6 +176,21 @@ final class AppSessionStore {
         }
     }
 
+    func leaveActiveCouple() async {
+        guard case .signedInPaired = state else { return }
+
+        state = .loading
+        clearMessage()
+        PartnerWidgetSnapshotWriter.clear()
+        do {
+            try await dataService.leaveActiveCouple()
+            await reloadAuthenticatedState()
+        } catch {
+            await reloadAuthenticatedState()
+            showError("Bağlantı sonlandırılamadı. Lütfen tekrar dene.")
+        }
+    }
+
     func retry() async {
         await reloadAuthenticatedState()
     }

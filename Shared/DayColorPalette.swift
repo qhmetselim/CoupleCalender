@@ -1,6 +1,8 @@
 import SwiftUI
 
 enum DayColorPalette {
+    static let appAccent = Color(red: 0.74, green: 0.29, blue: 0.36)
+
     struct Option: Identifiable, Hashable {
         let key: String
         let label: String

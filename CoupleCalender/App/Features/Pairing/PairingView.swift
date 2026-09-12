@@ -4,72 +4,138 @@ import UIKit
 struct PairingView: View {
     let sessionStore: AppSessionStore
     @State private var inviteCode = ""
+    @FocusState private var isCodeFocused: Bool
 
     private var pendingInviteExpiresAt: Date? {
         if case let .signedInUnpaired(_, expiry) = sessionStore.state { return expiry }
         return nil
     }
 
+    private var isLoading: Bool { sessionStore.state == .loading }
+
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    Text("Partnerinle güvenli bir davet kodu paylaş veya onun koduna katıl.")
-                        .foregroundStyle(.secondary)
-                }
-
-                Section("Partnerini davet et") {
-                    Button(sessionStore.latestInvite == nil ? "Davet kodu oluştur" : "Kodu yenile") {
-                        Task { await sessionStore.createOrRefreshInvite() }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    header
+                    inviteCard
+                    joinCard
+                    if let message = sessionStore.message {
+                        AppStatusMessage(text: message, isError: sessionStore.messageIsError)
                     }
-                    if let invite = sessionStore.latestInvite {
-                        InviteCodeCard(invite: invite) { code in
-                            UIPasteboard.general.string = code
-                            sessionStore.clearMessage()
-                        }
-                        Button("Bekleyen daveti iptal et", role: .destructive) {
-                            Task { await sessionStore.cancelPendingInvite() }
-                        }
-                    } else if let pendingInviteExpiresAt {
-                        Text("Bekleyen davet \(pendingInviteExpiresAt, style: .relative) içinde sona eriyor. Yeni kod oluşturabilirsin.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
+                    signOutButton
                 }
-
-                Section("Bir koda katıl") {
-                    TextField("Davet kodu", text: $inviteCode)
-                        .textInputAutocapitalization(.characters)
-                        .autocorrectionDisabled()
-                    Button("Bağlan") {
-                        Task { await sessionStore.acceptInvite(code: inviteCode) }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(inviteCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-
-                if let message = sessionStore.message {
-                    Section {
-                        Text(message)
-                            .foregroundStyle(sessionStore.messageIsError ? .red : .secondary)
-                    }
-                }
-
-                Section {
-                    Button("Oturumu Kapat", role: .destructive) {
-                        Task { await sessionStore.signOut() }
-                    }
-                }
+                .frame(maxWidth: 560)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, AppDesign.pagePadding)
+                .padding(.vertical, 28)
             }
-            .navigationTitle("Partner bağlantısı")
+            .scrollDismissesKeyboard(.interactively)
+            .background(AppDesign.pageBackground.ignoresSafeArea())
+            .navigationBarHidden(true)
             .overlay {
-                if sessionStore.state == .loading {
-                    ProgressView()
-                        .padding()
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                if isLoading {
+                    ProgressView("Hazırlanıyor…")
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 14)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: AppDesign.smallCornerRadius, style: .continuous))
                 }
             }
         }
+        .tint(AppDesign.accent)
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Image(systemName: "person.2.circle")
+                .font(.system(size: 42, weight: .medium))
+                .foregroundStyle(AppDesign.accent)
+            Text("Partnerinle bağlan")
+                .font(.system(.largeTitle, design: .rounded).weight(.bold))
+            Text("Bir davet kodu paylaşın veya partnerinin kodunu girerek takvimlerinizi buluşturun.")
+                .font(.body)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var inviteCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            AppSectionHeader("Partnerini davet et", subtitle: "Tek kullanımlık kod 24 saat geçerlidir.")
+
+            if let invite = sessionStore.latestInvite {
+                InviteCodeCard(invite: invite) { code in
+                    UIPasteboard.general.string = code
+                    AppHaptics.selection()
+                    sessionStore.clearMessage()
+                }
+                Button("Bekleyen daveti iptal et", role: .destructive) {
+                    Task { await sessionStore.cancelPendingInvite() }
+                }
+                .font(.subheadline.weight(.medium))
+            } else {
+                Button {
+                    Task { await sessionStore.createOrRefreshInvite() }
+                } label: {
+                    Label("Davet kodu oluştur", systemImage: "plus.circle.fill")
+                }
+                .buttonStyle(AppPrimaryButtonStyle())
+                if let pendingInviteExpiresAt {
+                    HStack(spacing: 0) {
+                        Text("Bekleyen davet ")
+                        Text(pendingInviteExpiresAt, style: .relative)
+                            .fontWeight(.semibold)
+                        Text(" içinde sona eriyor.")
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .appCard()
+    }
+
+    private var joinCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            AppSectionHeader("Davet kodum var", subtitle: "Partnerinin paylaştığı kodu buraya gir.")
+
+            TextField("ABC 123 XYZ", text: $inviteCode)
+                .textInputAutocapitalization(.characters)
+                .autocorrectionDisabled()
+                .textContentType(.oneTimeCode)
+                .submitLabel(.go)
+                .focused($isCodeFocused)
+                .onChange(of: inviteCode) { _, newValue in
+                    inviteCode = newValue
+                        .uppercased()
+                        .filter { $0.isLetter || $0.isNumber }
+                }
+                .onSubmit { join() }
+                .appInputField()
+
+            Button(action: join) {
+                HStack(spacing: 8) {
+                    if isLoading { ProgressView().tint(.white) }
+                    Text("Bağlan")
+                }
+            }
+            .buttonStyle(AppPrimaryButtonStyle())
+            .disabled(inviteCode.isEmpty || isLoading)
+        }
+        .appCard()
+    }
+
+    private var signOutButton: some View {
+        Button("Oturumu Kapat", role: .destructive) {
+            Task { await sessionStore.signOut() }
+        }
+        .frame(maxWidth: .infinity)
+        .buttonStyle(.bordered)
+    }
+
+    private func join() {
+        guard !inviteCode.isEmpty, !isLoading else { return }
+        isCodeFocused = false
+        Task { await sessionStore.acceptInvite(code: inviteCode) }
     }
 }
 
@@ -78,22 +144,33 @@ private struct InviteCodeCard: View {
     let onCopy: (String) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             Text(invite.code)
-                .font(.system(.title2, design: .monospaced).weight(.semibold))
-                .tracking(2)
-                .textSelection(.enabled)
-            Text("Son geçerlilik: \(invite.expiresAt, style: .relative)")
-                .font(.footnote)
+                .font(.system(.largeTitle, design: .monospaced).weight(.bold))
+                .tracking(3)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.vertical, 8)
+                .accessibilityLabel("Davet kodu (invite.code)")
+
+            Label("Son geçerlilik: (invite.expiresAt, style: .relative)", systemImage: "clock")
+                .font(.caption)
                 .foregroundStyle(.secondary)
-            HStack {
-                Button("Kodu Kopyala") { onCopy(invite.code) }
+
+            HStack(spacing: 10) {
+                Button {
+                    onCopy(invite.code)
+                } label: {
+                    Label("Kopyala", systemImage: "doc.on.doc")
+                }
+                .buttonStyle(AppSecondaryButtonStyle())
+
                 ShareLink(item: invite.code) {
                     Label("Paylaş", systemImage: "square.and.arrow.up")
                 }
+                .buttonStyle(AppSecondaryButtonStyle())
             }
-            .buttonStyle(.bordered)
         }
-        .padding(.vertical, 4)
+        .padding(14)
+        .background(AppDesign.fieldBackground, in: RoundedRectangle(cornerRadius: AppDesign.smallCornerRadius, style: .continuous))
     }
 }

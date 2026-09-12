@@ -16,7 +16,7 @@ struct ContentView: View {
             if let sessionStore {
                 switch sessionStore.state {
                 case .loading:
-                    ProgressView("Yükleniyor…")
+                    AppLaunchLoadingView()
                 case .signedOut:
                     AuthView(sessionStore: sessionStore)
                 case .signedInNeedsProfile:
@@ -34,21 +34,48 @@ struct ContentView: View {
                     RecoverableErrorView(message: message, sessionStore: sessionStore)
                 }
             } else if let configurationError {
-                VStack(spacing: 12) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .imageScale(.large)
-                        .foregroundStyle(.tint)
-                    Text("Supabase yapılandırması gerekli")
-                        .font(.headline)
-                    Text(configurationError.localizedDescription)
-                        .font(.footnote)
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(.secondary)
-                }
-                .padding()
+                AppConfigurationErrorView(error: configurationError)
             }
         }
         .animation(.default, value: sessionStore?.state)
+        .tint(AppDesign.accent)
+    }
+}
+
+private struct AppLaunchLoadingView: View {
+    var body: some View {
+        VStack(spacing: 18) {
+            Image(systemName: "calendar.badge.clock")
+                .font(.system(size: 42, weight: .medium))
+                .foregroundStyle(AppDesign.accent)
+            ProgressView()
+            Text("Takvimin hazırlanıyor…")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AppDesign.pageBackground.ignoresSafeArea())
+    }
+}
+
+private struct AppConfigurationErrorView: View {
+    let error: SupabaseConfigurationError
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.title)
+                .foregroundStyle(.orange)
+            Text("Supabase yapılandırması gerekli")
+                .font(.title2.weight(.bold))
+            Text(error.localizedDescription)
+                .font(.body)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: 520, alignment: .leading)
+        .padding(.horizontal, AppDesign.pagePadding)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .background(AppDesign.pageBackground.ignoresSafeArea())
     }
 }
 
@@ -58,20 +85,25 @@ private struct RecoverableErrorView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Image(systemName: "arrow.clockwise.circle")
-                .font(.largeTitle)
-                .foregroundStyle(.tint)
+            Image(systemName: "arrow.clockwise.circle.fill")
+                .font(.system(size: 46, weight: .medium))
+                .foregroundStyle(AppDesign.accent)
             Text(message).multilineTextAlignment(.center)
+                .font(.body)
+                .foregroundStyle(.secondary)
             Button("Tekrar Dene") {
                 Task { await sessionStore.retry() }
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(AppPrimaryButtonStyle())
             Button("Oturumu Kapat") {
                 Task { await sessionStore.signOut() }
             }
             .buttonStyle(.bordered)
         }
+        .frame(maxWidth: 420)
         .padding()
+        .background(AppDesign.pageBackground.ignoresSafeArea())
+        .tint(AppDesign.accent)
     }
 }
 

@@ -33,5 +33,9 @@ struct MonthCalendarView: View {
             }
             .padding(.vertical)
         }
+        .padding(8)
+        .appCard(padding: 0, cornerRadius: AppDesign.cornerRadius)
+        .padding(.vertical, 12)
+        .scrollIndicators(.hidden)
     }
 }

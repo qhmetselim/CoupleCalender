@@ -86,7 +86,7 @@ private struct PartnerWidgetView: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(4)
+        .padding(12)
     }
 
     private func medium(_ snapshot: PartnerWidgetSnapshot) -> some View {
@@ -113,7 +113,7 @@ private struct PartnerWidgetView: View {
             }
             .frame(width: 110, alignment: .leading)
         }
-        .padding(4)
+        .padding(12)
     }
 
     private func large(_ snapshot: PartnerWidgetSnapshot) -> some View {
@@ -131,14 +131,14 @@ private struct PartnerWidgetView: View {
                 Spacer(minLength: 0)
             }
         }
-        .padding(4)
+        .padding(12)
     }
 
     private var emptyState: some View {
         VStack(spacing: 8) {
             Image(systemName: "heart.circle")
                 .font(.title2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(DayColorPalette.appAccent)
             Text("Partnerine bağlan")
                 .font(.headline)
             Text("CoupleCalender'ı aç")
@@ -150,7 +150,7 @@ private struct PartnerWidgetView: View {
     }
 
     private func partnerHeader(_ snapshot: PartnerWidgetSnapshot) -> some View {
-        Label(snapshot.partnerDisplayName, systemImage: "heart.fill")
+        Label(snapshot.partnerDisplayName, systemImage: "person.2.fill")
             .font(.headline)
             .foregroundStyle(.primary)
             .lineLimit(1)
@@ -167,7 +167,7 @@ private struct PartnerWidgetView: View {
                         if let reaction = memory.reactionDisplayValue {
                             Text(reaction)
                                 .font(.body)
-                                .accessibilityLabel("Reaction: \(memory.reactionKey ?? reaction)")
+                                .accessibilityLabel("Tepki: \(memory.reactionKey ?? reaction)")
                         }
                     }
                     Text(memory.contentPreview)
@@ -176,8 +176,12 @@ private struct PartnerWidgetView: View {
                         .privacySensitive()
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(8)
-                .background(dayColor(for: memory).opacity(0.18), in: RoundedRectangle(cornerRadius: 10))
+                .padding(10)
+                .background(dayColor(for: memory).opacity(0.14), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(.primary.opacity(0.06), lineWidth: 0.5)
+                }
             }
             .buttonStyle(.plain)
             .accessibilityLabel("\(WidgetDateFormatting.label(for: memory.calendarDay)): \(memory.contentPreview)")

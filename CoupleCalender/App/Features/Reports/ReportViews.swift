@@ -56,7 +56,9 @@ struct ReportContainerView: View {
             }
             .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
+            .background(AppDesign.pageBackground.ignoresSafeArea())
         }
+        .tint(AppDesign.accent)
         .task(id: route.id) {
             await loadReport()
         }
@@ -163,15 +165,16 @@ private struct MonthlyReportView: View {
             }
             .padding()
         }
+        .scrollIndicators(.hidden)
     }
 
     private var reportHeader: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Aylık Rapor")
+            Label("Aylık Rapor", systemImage: "chart.bar.doc.horizontal")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppDesign.accent)
             Text(monthTitle)
-                .font(.title2.weight(.bold))
+                .font(.system(.title, design: .rounded).weight(.bold))
             Text("Takvimindeki gerçek kayıt ve etkileşim istatistikleri")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -262,7 +265,7 @@ private struct MonthlyReportView: View {
     }
 
     private var monthTitle: String {
-        var components = DateComponents(year: report.year, month: report.month, day: 1)
+        let components = DateComponents(year: report.year, month: report.month, day: 1)
         let date = calendar.date(from: components) ?? Date()
         return date.formatted(.dateTime.month(.wide).year())
     }
@@ -292,11 +295,11 @@ private struct YearlyReportView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Yıllık Rapor")
+                    Label("Yıllık Rapor", systemImage: "chart.bar.doc.horizontal")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppDesign.accent)
                     Text("\(report.year)")
-                        .font(.title.weight(.bold))
+                        .font(.system(.largeTitle, design: .rounded).weight(.bold))
                     Text("Takvimindeki gerçek kayıt ve etkileşim istatistikleri")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -366,6 +369,7 @@ private struct YearlyReportView: View {
             }
             .padding()
         }
+        .scrollIndicators(.hidden)
     }
 
     private var activeMonthTitle: String {
@@ -393,8 +397,7 @@ private struct ReportMetricCard: View {
                 .font(.title2.weight(.bold).monospacedDigit())
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .appCard(padding: 12, cornerRadius: AppDesign.smallCornerRadius)
     }
 }
 
@@ -410,8 +413,7 @@ private struct ReportSection<Content: View>: View {
             content
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .appCard(padding: 14, cornerRadius: 16)
     }
 }
 

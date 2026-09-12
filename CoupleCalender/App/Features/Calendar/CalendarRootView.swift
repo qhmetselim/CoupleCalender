@@ -6,6 +6,7 @@ struct CalendarRootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var calendarStore: CalendarStore
     @State private var reportRoute: ReportRoute?
+    @State private var isShowingAccountSettings = false
 
     init(sessionStore: AppSessionStore, profile: Profile, partner: Profile, coupleID: UUID) {
         self.sessionStore = sessionStore
@@ -25,12 +26,7 @@ struct CalendarRootView: View {
             VStack(spacing: 12) {
                 notificationPermissionOffer
 
-                Picker("Takvim sahibi", selection: $calendarStore.owner) {
-                    ForEach(CalendarOwner.allCases) { owner in
-                        Text(owner.title).tag(owner)
-                    }
-                }
-                .pickerStyle(.segmented)
+                CalendarOwnerSwitcher(store: calendarStore)
 
                 Picker("Görünüm", selection: $calendarStore.mode) {
                     ForEach(CalendarMode.allCases) { mode in
@@ -38,6 +34,9 @@ struct CalendarRootView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .padding(3)
+                .background(AppDesign.fieldBackground, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                .accessibilityLabel("Takvim görünümü")
 
                 CalendarNavigationHeader(store: calendarStore)
 
@@ -47,23 +46,18 @@ struct CalendarRootView: View {
             .padding(.horizontal)
             .navigationTitle(calendarStore.ownerName)
             .navigationBarTitleDisplayMode(.inline)
+            .background(AppDesign.pageBackground.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     reportButton
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Section("Bağlantı") {
-                            Label(calendarStore.profile.displayName ?? "Benim", systemImage: "person")
-                            Label(calendarStore.partner.displayName ?? "Partnerim", systemImage: "person.2")
-                        }
-                        Button("Oturumu Kapat", role: .destructive) {
-                            Task { await sessionStore.signOut() }
-                        }
+                    Button {
+                        isShowingAccountSettings = true
                     } label: {
-                        Image(systemName: "ellipsis.circle")
+                        Image(systemName: "person.crop.circle")
                     }
-                    .accessibilityLabel("Hesap seçenekleri")
+                    .accessibilityLabel("Hesap ve bağlantı ayarları")
                 }
             }
         }
@@ -73,6 +67,14 @@ struct CalendarRootView: View {
                 dataService: sessionStore.supabaseDataService,
                 calendar: calendarStore.engine.calendar
             )
+        }
+        .sheet(isPresented: $isShowingAccountSettings) {
+            AccountSettingsView(
+                sessionStore: sessionStore,
+                profile: calendarStore.profile,
+                partner: calendarStore.partner
+            )
+            .presentationDetents([.medium, .large])
         }
         .task(id: calendarStore.visiblePeriodKey) {
             await calendarStore.loadVisiblePeriod()
@@ -138,23 +140,32 @@ struct CalendarRootView: View {
     private var notificationPermissionOffer: some View {
         if sessionStore.pushNotifications.shouldShowPermissionOffer {
             VStack(alignment: .leading, spacing: 8) {
-                Label("Partnerin yeni bir anı eklediğinde haber almak ister misin?", systemImage: "bell.badge")
-                    .font(.subheadline.weight(.semibold))
-                HStack {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "bell.badge")
+                        .foregroundStyle(AppDesign.accent)
+                    Text("Partnerin yeni bir anı eklediğinde haber almak ister misin?")
+                        .font(.subheadline.weight(.semibold))
+                }
+                HStack(spacing: 10) {
                     Button("Bildirimleri Aç") {
                         Task { await sessionStore.pushNotifications.requestAuthorization() }
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(AppSecondaryButtonStyle())
 
                     Button("Şimdi Değil") {
                         sessionStore.pushNotifications.dismissPermissionOffer()
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+            .background(AppDesign.accent.opacity(0.08), in: RoundedRectangle(cornerRadius: AppDesign.smallCornerRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: AppDesign.smallCornerRadius, style: .continuous)
+                    .strokeBorder(AppDesign.accent.opacity(0.16), lineWidth: 0.5)
+            }
         }
     }
 
@@ -181,6 +192,46 @@ struct CalendarRootView: View {
     }
 }
 
+private struct CalendarOwnerSwitcher: View {
+    let store: CalendarStore
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(CalendarOwner.allCases) { owner in
+                Button {
+                    guard store.owner != owner else { return }
+                    store.owner = owner
+                    AppHaptics.selection()
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: owner == .me ? "person.fill" : "person.2.fill")
+                            .font(.caption.weight(.semibold))
+                        Text(name(for: owner))
+                            .font(.caption.weight(.semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 52)
+                    .foregroundStyle(store.owner == owner ? .white : .primary)
+                    .background(store.owner == owner ? AppDesign.accent : .clear, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(owner == .me ? "Benim takvimim" : "\(store.partner.displayName ?? "Partnerimin") takvimi")
+                .accessibilityAddTraits(store.owner == owner ? .isSelected : [])
+            }
+        }
+        .padding(4)
+        .background(AppDesign.fieldBackground, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func name(for owner: CalendarOwner) -> String {
+        switch owner {
+        case .me: store.profile.displayName ?? "Ben"
+        case .partner: store.partner.displayName ?? "Partnerim"
+        }
+    }
+}
+
 private struct CalendarNavigationHeader: View {
     let store: CalendarStore
 
@@ -190,15 +241,16 @@ private struct CalendarNavigationHeader: View {
                 store.moveToPreviousPeriod()
             } label: {
                 Image(systemName: "chevron.left")
+                    .frame(width: 40, height: 40)
             }
             .accessibilityLabel("Önceki dönem")
 
             VStack(spacing: 2) {
                 Text(store.periodTitle())
-                    .font(.headline)
+                    .font(.system(.headline, design: .rounded).weight(.semibold))
                     .lineLimit(1)
                 Text(store.mode.title)
-                    .font(.caption)
+                    .font(.caption.weight(.medium))
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity)
@@ -206,12 +258,16 @@ private struct CalendarNavigationHeader: View {
             Button("Bugün") {
                 store.moveToToday()
             }
-            .font(.subheadline.weight(.semibold))
+            .font(.caption.weight(.bold))
+            .padding(.horizontal, 10)
+            .frame(minHeight: 34)
+            .background(AppDesign.accent.opacity(0.10), in: Capsule())
 
             Button {
                 store.moveToNextPeriod()
             } label: {
                 Image(systemName: "chevron.right")
+                    .frame(width: 40, height: 40)
             }
             .accessibilityLabel("Sonraki dönem")
         }

@@ -12,8 +12,10 @@ struct YearCalendarView: View {
                     MiniMonthView(month: month, store: store)
                 }
             }
-            .padding(.vertical)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 4)
         }
+        .scrollIndicators(.hidden)
     }
 }
 
@@ -21,8 +23,13 @@ private struct MiniMonthView: View {
     let month: CalendarDay
     let store: CalendarStore
 
+    private var isSelectedMonth: Bool {
+        month.year == store.selectedDate.year && month.month == store.selectedDate.month
+    }
+
     var body: some View {
         Button {
+            AppHaptics.selection()
             store.showMonth(containing: month)
         } label: {
             VStack(alignment: .leading, spacing: 5) {
@@ -36,17 +43,18 @@ private struct MiniMonthView: View {
                         Text(String(day.day))
                             .font(.system(size: 8))
                             .foregroundStyle(day.month == month.month ? .primary : .tertiary)
-                            .frame(maxWidth: .infinity, minHeight: 10)
+                            .frame(maxWidth: .infinity, minHeight: 12)
+                            .minimumScaleFactor(0.7)
                             .background {
                                 if let color = store.dayColor(on: day) {
                                     Circle()
-                                        .fill(DayColorPalette.color(for: color.colorKey).opacity(0.55))
+                                        .fill(DayColorPalette.color(for: color.colorKey).opacity(0.42))
                                 }
                             }
                             .overlay(alignment: .bottom) {
                                 if store.memory(on: day) != nil {
                                     Circle()
-                                        .fill(store.reactionDisplayValue(on: day) == nil ? Color.accentColor : Color.primary)
+                                        .fill(store.reactionDisplayValue(on: day) == nil ? AppDesign.accent : .primary)
                                         .frame(width: 2, height: 2)
                                 }
                             }
@@ -55,9 +63,13 @@ private struct MiniMonthView: View {
             }
             .padding(7)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10))
+            .background(AppDesign.cardBackground, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(isSelectedMonth ? AppDesign.accent.opacity(0.55) : .primary.opacity(0.06), lineWidth: isSelectedMonth ? 1.5 : 0.5)
+            }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(month.year)-\(month.month) ayını aç")
+        .accessibilityLabel("\(month.year) \(store.engine.date(for: month).formatted(.dateTime.month(.wide))) ayını aç")
     }
 }

@@ -29,7 +29,10 @@ struct WeekCalendarView: View {
                     }
                 }
             }
-            .padding(.vertical)
+            .padding(10)
+            .appCard(padding: 0, cornerRadius: AppDesign.cornerRadius)
+            .padding(.vertical, 12)
         }
+        .scrollIndicators(.hidden)
     }
 }
