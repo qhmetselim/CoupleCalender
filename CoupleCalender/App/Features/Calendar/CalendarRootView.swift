@@ -5,6 +5,7 @@ struct CalendarRootView: View {
     let coupleID: UUID
     @Environment(\.scenePhase) private var scenePhase
     @State private var calendarStore: CalendarStore
+    @State private var reportRoute: ReportRoute?
 
     init(sessionStore: AppSessionStore, profile: Profile, partner: Profile, coupleID: UUID) {
         self.sessionStore = sessionStore
@@ -47,6 +48,9 @@ struct CalendarRootView: View {
             .navigationTitle(calendarStore.ownerName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    reportButton
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Section("Bağlantı") {
@@ -62,6 +66,13 @@ struct CalendarRootView: View {
                     .accessibilityLabel("Hesap seçenekleri")
                 }
             }
+        }
+        .sheet(item: $reportRoute) { route in
+            ReportContainerView(
+                route: route,
+                dataService: sessionStore.supabaseDataService,
+                calendar: calendarStore.engine.calendar
+            )
         }
         .task(id: calendarStore.visiblePeriodKey) {
             await calendarStore.loadVisiblePeriod()
@@ -90,6 +101,36 @@ struct CalendarRootView: View {
         .refreshable {
             await calendarStore.reloadCurrentPeriod()
             await calendarStore.refreshPartnerWidgetSnapshot()
+        }
+    }
+
+    @ViewBuilder
+    private var reportButton: some View {
+        switch calendarStore.mode {
+        case .month:
+            if ReportPeriodEligibility.isCompleted(
+                month: calendarStore.selectedDate.month,
+                year: calendarStore.selectedDate.year,
+                today: calendarStore.engine.today()
+            ) {
+                Button("Aylık Rapor") {
+                    reportRoute = ReportRoute(kind: .monthly(
+                        year: calendarStore.selectedDate.year,
+                        month: calendarStore.selectedDate.month
+                    ))
+                }
+            }
+        case .year:
+            if ReportPeriodEligibility.isCompleted(
+                year: calendarStore.selectedDate.year,
+                today: calendarStore.engine.today()
+            ) {
+                Button("Yıllık Rapor") {
+                    reportRoute = ReportRoute(kind: .yearly(year: calendarStore.selectedDate.year))
+                }
+            }
+        case .day, .week:
+            EmptyView()
         }
     }
 

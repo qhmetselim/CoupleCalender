@@ -29,6 +29,6 @@ enum DayColorPalette {
     }
 
     static func label(for key: String) -> String {
-        options.first(where: { $0.key == key })?.label ?? key
+        options.first(where: { $0.key == key })?.label ?? "Bilinmeyen renk"
     }
 }

@@ -390,6 +390,24 @@ struct YearlyReport: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
+struct EnsureMonthlyReportParameters: Encodable, Sendable {
+    let inputYear: Int
+    let inputMonth: Int
+
+    enum CodingKeys: String, CodingKey {
+        case inputYear = "input_year"
+        case inputMonth = "input_month"
+    }
+}
+
+struct EnsureYearlyReportParameters: Encodable, Sendable {
+    let inputYear: Int
+
+    enum CodingKeys: String, CodingKey {
+        case inputYear = "input_year"
+    }
+}
+
 struct PartnerInvite: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     let code: String

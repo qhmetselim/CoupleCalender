@@ -108,6 +108,55 @@ final class SupabaseDataService {
             .value
     }
 
+    func fetchMonthlyReport(year: Int, month: Int) async throws -> MonthlyReport? {
+        guard client.auth.currentSession?.user.id != nil else {
+            throw SupabaseDataServiceError.notAuthenticated
+        }
+        return try await client
+            .from("monthly_reports")
+            .select()
+            .eq("year", value: year)
+            .eq("month", value: month)
+            .maybeSingle()
+            .execute()
+            .value
+    }
+
+    func ensureMonthlyReport(year: Int, month: Int) async throws -> MonthlyReport {
+        try await client
+            .rpc(
+                "ensure_completed_monthly_report",
+                params: EnsureMonthlyReportParameters(inputYear: year, inputMonth: month)
+            )
+            .single()
+            .execute()
+            .value
+    }
+
+    func fetchYearlyReport(year: Int) async throws -> YearlyReport? {
+        guard client.auth.currentSession?.user.id != nil else {
+            throw SupabaseDataServiceError.notAuthenticated
+        }
+        return try await client
+            .from("yearly_reports")
+            .select()
+            .eq("year", value: year)
+            .maybeSingle()
+            .execute()
+            .value
+    }
+
+    func ensureYearlyReport(year: Int) async throws -> YearlyReport {
+        try await client
+            .rpc(
+                "ensure_completed_yearly_report",
+                params: EnsureYearlyReportParameters(inputYear: year)
+            )
+            .single()
+            .execute()
+            .value
+    }
+
     func upsertReaction(for memoryID: UUID, reactionSet: String, reactionKey: String) async throws -> MemoryReaction {
         guard let reactorID = client.auth.currentSession?.user.id else {
             throw SupabaseDataServiceError.notAuthenticated

@@ -267,6 +267,71 @@ struct CoupleCalenderTests {
         #expect(snapshot.memories.dropFirst().allSatisfy { $0.contentPreview.hasSuffix("…") })
     }
 
+    @Test func reportMetricsDecodeTypedSnapshotAndToleratesUnknownFields() throws {
+        let metrics: [String: JSONValue] = [
+            "schema_version": .number(1),
+            "memory_count": .number(3),
+            "reacted_memory_count": .number(2),
+            "reaction_count": .number(4),
+            "reaction_coverage": .number(0.6667),
+            "reaction_frequency": .array([
+                .object([
+                    "reaction_set": .string("unicode-v1"),
+                    "reaction_key": .string("heart"),
+                    "display_value": .string("❤️"),
+                    "count": .number(4)
+                ])
+            ]),
+            "most_used_reaction": .object([
+                "reaction_set": .string("unicode-v1"),
+                "reaction_key": .string("heart"),
+                "display_value": .string("❤️"),
+                "count": .number(4)
+            ]),
+            "day_color_frequency": .array([
+                .object(["color_key": .string("rose"), "count": .number(2)])
+            ]),
+            "most_used_color": .object(["color_key": .string("rose"), "count": .number(2)]),
+            "memory_day_count": .number(3),
+            "active_week": .object([
+                "week_start": .string("2026-09-07"),
+                "week_end": .string("2026-09-13"),
+                "memory_count": .number(2)
+            ]),
+            "future_metric_added_by_server": .string("ignored")
+        ]
+
+        let decoded = try #require(ReportMetricsDecoder.decodeMonthly(metrics))
+        #expect(decoded.memoryCount == 3)
+        #expect(decoded.reactedMemoryCount == 2)
+        #expect(decoded.reactionFrequency.first?.reactionKey == "heart")
+        #expect(decoded.mostUsedColor?.colorKey == "rose")
+        #expect(decoded.activeWeek?.weekStart.rawValue == "2026-09-07")
+    }
+
+    @Test func reportEligibilityUsesCompletedCalendarPeriodsOnly() throws {
+        let today = CalendarDay(rawValue: "2026-09-12")
+
+        #expect(ReportPeriodEligibility.isCompleted(month: 8, year: 2026, today: today))
+        #expect(!ReportPeriodEligibility.isCompleted(month: 9, year: 2026, today: today))
+        #expect(!ReportPeriodEligibility.isCompleted(month: 10, year: 2026, today: today))
+        #expect(ReportPeriodEligibility.isCompleted(year: 2025, today: today))
+        #expect(!ReportPeriodEligibility.isCompleted(year: 2026, today: today))
+    }
+
+    @Test func unknownReportColorKeepsCanonicalKeyWithoutCrashing() throws {
+        let metrics: [String: JSONValue] = [
+            "schema_version": .number(1),
+            "day_color_frequency": .array([
+                .object(["color_key": .string("legacy-blue"), "count": .number(1)])
+            ])
+        ]
+
+        let decoded = try #require(ReportMetricsDecoder.decodeMonthly(metrics))
+        #expect(decoded.dayColorFrequency.first?.colorKey == "legacy-blue")
+        #expect(DayColorPalette.label(for: "legacy-blue") == "Bilinmeyen renk")
+    }
+
     @Test func partnerWidgetSnapshotRoundTripsAndClearsFromSharedStore() throws {
         let suiteName = "CoupleCalenderTests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suiteName))
