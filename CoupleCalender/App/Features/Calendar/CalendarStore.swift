@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import Supabase
 
 @MainActor
 @Observable
@@ -12,10 +13,12 @@ final class CalendarStore {
     private let realtimeCoordinator: CoupleRealtimeCoordinator
     private let profileID: UUID
     private let partnerID: UUID
+    private let coupleID: UUID?
     private var memoryCache: [MemoryRangeKey: [Memory]] = [:]
     private var reactionCache: [MemoryRangeKey: [MemoryReaction]] = [:]
     private var dayColorCache: [MemoryRangeKey: [DayColor]] = [:]
     private var loadingKey: MemoryRangeKey?
+    private var widgetRefreshTask: Task<Void, Never>?
     private var hasLoadedReactionCatalog = false
 
     var selectedDate: CalendarDay
@@ -38,6 +41,7 @@ final class CalendarStore {
         dataService: SupabaseDataService,
         profile: Profile,
         partner: Profile,
+        coupleID: UUID? = nil,
         calendar: Calendar = .autoupdatingCurrent
     ) {
         self.dataService = dataService
@@ -45,6 +49,7 @@ final class CalendarStore {
         self.partner = partner
         self.profileID = profile.id
         self.partnerID = partner.id
+        self.coupleID = coupleID
         self.engine = CalendarEngine(calendar: calendar)
         self.realtimeCoordinator = CoupleRealtimeCoordinator(client: dataService.client)
         self.selectedDate = CalendarDay(date: Date(), calendar: calendar)
@@ -123,8 +128,61 @@ final class CalendarStore {
         selectedDate = target.calendarDay
     }
 
+    func openWidgetTarget(_ target: WidgetDeepLinkTarget) {
+        guard let day = try? CalendarDay(iso8601: target.calendarDay) else { return }
+        owner = .partner
+        mode = .day
+        selectedDate = day
+    }
+
     func startRealtime(coupleID: UUID) async {
         await realtimeCoordinator.start(coupleID: coupleID, store: self)
+    }
+
+    func refreshPartnerWidgetSnapshot() async {
+        guard let coupleID,
+              dataService.client.auth.currentSession?.user.id == profileID
+        else { return }
+
+        do {
+            let recentMemories = try await dataService.fetchRecentMemories(
+                ownerID: partnerID,
+                limit: PartnerWidgetSnapshotBuilder.memoryLimit
+            )
+            let recentMemoryIDs = recentMemories.map(\.id)
+            let fetchedReactions = try await dataService.fetchReactions(memoryIDs: recentMemoryIDs)
+            let fetchedDayColors: [DayColor]
+            if let firstDay = recentMemories.map(\.calendarDay.rawValue).min(),
+               let lastDay = recentMemories.map(\.calendarDay.rawValue).max(),
+               let startDay = try? CalendarDay(iso8601: firstDay),
+               let endDay = try? CalendarDay(iso8601: lastDay) {
+                fetchedDayColors = try await dataService.fetchDayColors(
+                    ownerID: partnerID,
+                    startDay: startDay,
+                    endDay: endDay
+                )
+            } else {
+                fetchedDayColors = []
+            }
+
+            await loadReactionCatalogIfNeeded()
+            try Task.checkCancellation()
+            let snapshot = PartnerWidgetSnapshotBuilder.make(
+                userID: profileID,
+                coupleID: coupleID,
+                partnerID: partnerID,
+                partnerDisplayName: partner.displayName ?? "Partnerim",
+                memories: recentMemories,
+                reactions: fetchedReactions,
+                dayColors: fetchedDayColors,
+                reactionCatalog: reactionCatalog
+            )
+            PartnerWidgetSnapshotWriter.saveIfChanged(snapshot)
+        } catch is CancellationError {
+            return
+        } catch {
+            // A failed reconciliation must not erase the last valid private snapshot.
+        }
     }
 
     func stopRealtime() async {
@@ -262,6 +320,7 @@ final class CalendarStore {
                 reactionKey: item.reactionKey
             )
             applyReactionUpsert(reaction)
+            schedulePartnerWidgetSnapshotRefresh()
             return true
         } catch {
             decorationError = AppErrorMessage.reaction(error)
@@ -280,6 +339,7 @@ final class CalendarStore {
         do {
             try await dataService.deleteReaction(for: memory.id)
             applyReactionRemoval(memoryID: memory.id, reactorID: profileID)
+            schedulePartnerWidgetSnapshotRefresh()
             return true
         } catch {
             decorationError = AppErrorMessage.reaction(error)
@@ -298,6 +358,7 @@ final class CalendarStore {
         do {
             let color = try await dataService.upsertDayColor(for: memory, colorKey: colorKey)
             applyDayColorUpsert(color)
+            schedulePartnerWidgetSnapshotRefresh()
             return true
         } catch {
             decorationError = AppErrorMessage.dayColor(error)
@@ -316,6 +377,7 @@ final class CalendarStore {
         do {
             try await dataService.deleteDayColor(for: memory)
             applyDayColorRemoval(ownerID: memory.ownerID, day: memory.calendarDay, assignedByID: profileID)
+            schedulePartnerWidgetSnapshotRefresh()
             return true
         } catch {
             decorationError = AppErrorMessage.dayColor(error)
@@ -555,18 +617,23 @@ final class CalendarStore {
         case let .memoryUpsert(memory):
             guard isKnownCalendarOwner(memory.ownerID) else { return }
             applyUpdatedMemory(memory)
+            if memory.ownerID == partnerID { schedulePartnerWidgetSnapshotRefresh() }
         case let .memoryDelete(memory):
             guard isKnownCalendarOwner(memory.ownerID) else { return }
             applyDeletedMemory(memory)
+            if memory.ownerID == partnerID { schedulePartnerWidgetSnapshotRefresh() }
         case let .reactionUpsert(reaction):
             guard isAuthorizedReaction(reaction) else { return }
             applyReactionUpsert(reaction)
+            schedulePartnerWidgetSnapshotRefresh()
         case let .reactionDelete(reaction):
             guard isAuthorizedReaction(reaction) else { return }
             applyReactionRemoval(memoryID: reaction.memoryID, reactorID: reaction.reactorID)
+            schedulePartnerWidgetSnapshotRefresh()
         case let .dayColorUpsert(color):
             guard isAuthorizedDayColor(color) else { return }
             applyDayColorUpsert(color)
+            schedulePartnerWidgetSnapshotRefresh()
         case let .dayColorDelete(color):
             guard isAuthorizedDayColor(color) else { return }
             applyDayColorRemoval(
@@ -574,6 +641,22 @@ final class CalendarStore {
                 day: color.calendarDay,
                 assignedByID: color.assignedByID
             )
+            schedulePartnerWidgetSnapshotRefresh()
+        }
+    }
+
+    private func schedulePartnerWidgetSnapshotRefresh() {
+        widgetRefreshTask?.cancel()
+        widgetRefreshTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .milliseconds(150))
+                guard !Task.isCancelled else { return }
+                await self?.refreshPartnerWidgetSnapshot()
+            } catch is CancellationError {
+                return
+            } catch {
+                return
+            }
         }
     }
 

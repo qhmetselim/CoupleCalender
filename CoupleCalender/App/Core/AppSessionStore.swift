@@ -24,6 +24,8 @@ final class AppSessionStore {
     private(set) var message: String?
     private(set) var messageIsError = false
     private(set) var latestInvite: PartnerInvite?
+    private(set) var pendingWidgetDeepLink: WidgetDeepLinkTarget?
+    private(set) var widgetNavigationRevision = 0
 
     init(dataService: SupabaseDataService) {
         self.dataService = dataService
@@ -101,6 +103,7 @@ final class AppSessionStore {
     }
 
     func signOut() async {
+        PartnerWidgetSnapshotWriter.clear()
         await pushNotifications.removeCurrentDeviceToken()
         do {
             try await dataService.client.auth.signOut()
@@ -182,6 +185,17 @@ final class AppSessionStore {
         messageIsError = false
     }
 
+    func receiveWidgetDeepLink(_ url: URL) {
+        guard let target = WidgetDeepLink.parse(url) else { return }
+        pendingWidgetDeepLink = target
+        widgetNavigationRevision += 1
+    }
+
+    func consumePendingWidgetDeepLink() -> WidgetDeepLinkTarget? {
+        defer { pendingWidgetDeepLink = nil }
+        return pendingWidgetDeepLink
+    }
+
     private func handleAuthChange(event: AuthChangeEvent, session: Session?) async {
         switch event {
         case .initialSession, .signedIn, .userUpdated:
@@ -190,11 +204,15 @@ final class AppSessionStore {
                 state = .signedOut
                 return
             }
+            if currentSession?.user.id != session.user.id {
+                PartnerWidgetSnapshotWriter.clear()
+            }
             currentSession = session
             await reloadAuthenticatedState()
         case .signedOut, .userDeleted:
             currentSession = nil
             latestInvite = nil
+            PartnerWidgetSnapshotWriter.clear()
             state = .signedOut
             clearMessage()
         case .tokenRefreshed, .passwordRecovery, .mfaChallengeVerified:
@@ -218,6 +236,7 @@ final class AppSessionStore {
                   let displayName = profile.displayName,
                   !displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             else {
+                PartnerWidgetSnapshotWriter.clear()
                 state = .signedInNeedsProfile(userID: session.user.id)
                 return
             }
@@ -233,6 +252,7 @@ final class AppSessionStore {
                 let couple = try await dataService.fetchCouple(id: coupleID)
                 state = .signedInPaired(profile: profile, partner: partner, couple: couple)
             case "pending", "unpaired":
+                PartnerWidgetSnapshotWriter.clear()
                 state = .signedInUnpaired(
                     profile: profile,
                     pendingInviteExpiresAt: pairing.pendingInviteExpiresAt

@@ -12,7 +12,8 @@ struct CalendarRootView: View {
         _calendarStore = State(initialValue: CalendarStore(
             dataService: sessionStore.supabaseDataService,
             profile: profile,
-            partner: partner
+            partner: partner,
+            coupleID: coupleID
         ))
     }
 
@@ -67,15 +68,20 @@ struct CalendarRootView: View {
         }
         .task(id: coupleID) {
             await calendarStore.startRealtime(coupleID: coupleID)
+            await calendarStore.refreshPartnerWidgetSnapshot()
         }
         .task(id: sessionStore.pushNotifications.navigationRevision) {
             await applyPendingNotificationNavigation()
+        }
+        .task(id: sessionStore.widgetNavigationRevision) {
+            await applyPendingWidgetNavigation()
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
             Task {
                 await calendarStore.startRealtime(coupleID: coupleID)
                 await calendarStore.reloadCurrentPeriod()
+                await calendarStore.refreshPartnerWidgetSnapshot()
             }
         }
         .onDisappear {
@@ -83,6 +89,7 @@ struct CalendarRootView: View {
         }
         .refreshable {
             await calendarStore.reloadCurrentPeriod()
+            await calendarStore.refreshPartnerWidgetSnapshot()
         }
     }
 
@@ -117,6 +124,16 @@ struct CalendarRootView: View {
 
         let previousKey = calendarStore.visiblePeriodKey
         calendarStore.openNotificationTarget(target)
+        if previousKey == calendarStore.visiblePeriodKey {
+            await calendarStore.reloadCurrentPeriod()
+        }
+    }
+
+    private func applyPendingWidgetNavigation() async {
+        guard let target = sessionStore.consumePendingWidgetDeepLink() else { return }
+
+        let previousKey = calendarStore.visiblePeriodKey
+        calendarStore.openWidgetTarget(target)
         if previousKey == calendarStore.visiblePeriodKey {
             await calendarStore.reloadCurrentPeriod()
         }

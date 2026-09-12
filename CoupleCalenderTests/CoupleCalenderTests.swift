@@ -200,4 +200,105 @@ struct CoupleCalenderTests {
         #expect(NotificationNavigationTarget(userInfo: invalid) == nil)
     }
 
+    @Test func partnerWidgetSnapshotSortsLimitsAndKeepsDecorations() throws {
+        let userID = try #require(UUID(uuidString: "00000000-0000-4000-8000-000000000001"))
+        let coupleID = try #require(UUID(uuidString: "00000000-0000-4000-8000-000000000002"))
+        let partnerID = try #require(UUID(uuidString: "00000000-0000-4000-8000-000000000003"))
+        let memoryID = try #require(UUID(uuidString: "00000000-0000-4000-8000-000000000004"))
+        let memories = (1...8).map { offset in
+            Memory(
+                id: UUID(),
+                ownerID: partnerID,
+                calendarDay: CalendarDay(rawValue: "2026-09-\(String(format: "%02d", offset))"),
+                content: String(repeating: "a", count: 300),
+                createdAt: Date(timeIntervalSince1970: Double(offset)),
+                updatedAt: Date(timeIntervalSince1970: Double(offset))
+            )
+        } + [Memory(
+            id: memoryID,
+            ownerID: partnerID,
+            calendarDay: CalendarDay(rawValue: "2026-09-10"),
+            content: "Özel anı",
+            createdAt: Date(),
+            updatedAt: Date()
+        )]
+        let reaction = MemoryReaction(
+            id: UUID(),
+            memoryID: memoryID,
+            reactorID: userID,
+            reactionSet: "unicode-v1",
+            reactionKey: "heart",
+            createdAt: Date(),
+            updatedAt: Date()
+        )
+        let color = DayColor(
+            id: UUID(),
+            calendarOwnerID: partnerID,
+            calendarDay: CalendarDay(rawValue: "2026-09-10"),
+            assignedByID: userID,
+            colorKey: "rose",
+            createdAt: Date(),
+            updatedAt: Date()
+        )
+        let catalogItem = ReactionCatalogItem(
+            reactionSet: "unicode-v1",
+            reactionKey: "heart",
+            displayValue: "❤️",
+            assetName: nil,
+            isActive: true
+        )
+
+        let snapshot = PartnerWidgetSnapshotBuilder.make(
+            userID: userID,
+            coupleID: coupleID,
+            partnerID: partnerID,
+            partnerDisplayName: "Partner",
+            memories: memories,
+            reactions: [reaction],
+            dayColors: [color],
+            reactionCatalog: [catalogItem]
+        )
+
+        #expect(snapshot.memories.count == 7)
+        #expect(snapshot.memories.first?.calendarDay == "2026-09-10")
+        #expect(snapshot.memories.first?.reactionDisplayValue == "❤️")
+        #expect(snapshot.memories.first?.dayColorKey == "rose")
+        #expect(snapshot.memories.first?.contentPreview == "Özel anı")
+        #expect(snapshot.memories.dropFirst().allSatisfy { $0.contentPreview.hasSuffix("…") })
+    }
+
+    @Test func partnerWidgetSnapshotRoundTripsAndClearsFromSharedStore() throws {
+        let suiteName = "CoupleCalenderTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        let store = PartnerWidgetSnapshotStore(defaults: defaults)
+        let snapshot = PartnerWidgetSnapshot(
+            schemaVersion: PartnerWidgetSnapshot.currentSchemaVersion,
+            generatedAt: Date(timeIntervalSince1970: 1),
+            userID: try #require(UUID(uuidString: "00000000-0000-4000-8000-000000000001")),
+            coupleID: try #require(UUID(uuidString: "00000000-0000-4000-8000-000000000002")),
+            partnerID: try #require(UUID(uuidString: "00000000-0000-4000-8000-000000000003")),
+            partnerDisplayName: "Partner",
+            memories: []
+        )
+
+        store.save(snapshot)
+        #expect(store.read() == snapshot)
+        store.clear()
+        #expect(store.read() == nil)
+        defaults.removePersistentDomain(forName: suiteName)
+    }
+
+    @Test func widgetDeepLinkIsPartnerDayOnlyAndRejectsForeignRoutes() throws {
+        let memoryID = try #require(UUID(uuidString: "00000000-0000-4000-8000-000000000004"))
+        let url = try #require(WidgetDeepLink.url(calendarDay: "2026-09-10", memoryID: memoryID))
+        let target = try #require(WidgetDeepLink.parse(url))
+
+        #expect(target.calendarDay == "2026-09-10")
+        #expect(target.memoryID == memoryID)
+        let foreignURL = try #require(URL(string: "couplecalender://other/day/2026-09-10"))
+        let invalidDateURL = try #require(URL(string: "couplecalender://partner/day/2026-02-30"))
+        #expect(WidgetDeepLink.parse(foreignURL) == nil)
+        #expect(WidgetDeepLink.parse(invalidDateURL) == nil)
+    }
+
 }

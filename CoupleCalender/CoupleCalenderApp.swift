@@ -26,6 +26,9 @@ struct CoupleCalenderApp: App {
             if let sessionStore {
                 ContentView(sessionStore: sessionStore, configurationError: dependencies.configurationError)
                     .task { sessionStore.start() }
+                    .onOpenURL { url in
+                        sessionStore.receiveWidgetDeepLink(url)
+                    }
             } else {
                 ContentView(sessionStore: nil, configurationError: dependencies.configurationError)
             }

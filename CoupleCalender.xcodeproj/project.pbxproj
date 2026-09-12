@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		106D6F373052DBA400111FE4 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 106D6F363052DBA400111FE4 /* Supabase */; };
+		8205061BC80541308A97855D7DF9F6DF /* CoupleCalenderWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4ED478D4CF114730A1D8165F78F46A07 /* CoupleCalenderWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -25,12 +26,21 @@
 			remoteGlobalIDString = 106D6F0A3052D91500111FE4;
 			remoteInfo = CoupleCalender;
 		};
+		32D81A947DA4467490DCC4BCCDBF124D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 106D6F033052D91500111FE4 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F94BE6ED5F2A468DB2548AB9691B4EE2;
+			remoteInfo = CoupleCalenderWidget;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		106D6F0B3052D91500111FE4 /* CoupleCalender.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CoupleCalender.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		106D6F183052D91500111FE4 /* CoupleCalenderTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CoupleCalenderTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		106D6F223052D91500111FE4 /* CoupleCalenderUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CoupleCalenderUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4ED478D4CF114730A1D8165F78F46A07 /* CoupleCalenderWidget.appex */ = {isa = PBXFileReference; explicitFileType = "com.apple.product-type.app-extension"; includeInIndex = 0; path = CoupleCalenderWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		7CEA9A520E0345EBAE4D497981035EE1 /* CoupleCalenderWidget-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = CoupleCalenderWidget-Info.plist; sourceTree = "<group>"; };
 		106D6F3D3052E00000111FE4 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -48,6 +58,16 @@
 		106D6F253052D91500111FE4 /* CoupleCalenderUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = CoupleCalenderUITests;
+			sourceTree = "<group>";
+		};
+		630F27F01BC746D4AF4F7052BDC62529 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		9A3A20359DB04CECA085E51FA9E1D531 /* CoupleCalenderWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = CoupleCalenderWidget;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -75,6 +95,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B59826AFC7DB4C499BB8D3875950E31E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -83,6 +110,8 @@
 			children = (
 				106D6F3E3052E00000111FE4 /* Config */,
 				106D6F0D3052D91500111FE4 /* CoupleCalender */,
+				630F27F01BC746D4AF4F7052BDC62529 /* Shared */,
+				9A3A20359DB04CECA085E51FA9E1D531 /* CoupleCalenderWidget */,
 				106D6F1B3052D91500111FE4 /* CoupleCalenderTests */,
 				106D6F253052D91500111FE4 /* CoupleCalenderUITests */,
 				106D6F0C3052D91500111FE4 /* Products */,
@@ -93,6 +122,7 @@
 			isa = PBXGroup;
 			children = (
 				106D6F0B3052D91500111FE4 /* CoupleCalender.app */,
+				4ED478D4CF114730A1D8165F78F46A07 /* CoupleCalenderWidget.appex */,
 				106D6F183052D91500111FE4 /* CoupleCalenderTests.xctest */,
 				106D6F223052D91500111FE4 /* CoupleCalenderUITests.xctest */,
 			);
@@ -103,6 +133,7 @@
 			isa = PBXGroup;
 			children = (
 				106D6F3D3052E00000111FE4 /* Base.xcconfig */,
+				7CEA9A520E0345EBAE4D497981035EE1 /* CoupleCalenderWidget-Info.plist */,
 			);
 			name = Config;
 			path = Config;
@@ -118,13 +149,16 @@
 				106D6F073052D91500111FE4 /* Sources */,
 				106D6F083052D91500111FE4 /* Frameworks */,
 				106D6F093052D91500111FE4 /* Resources */,
+				FDDC76041AE84C4A8DED7CE6D3E114CB /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				535CB4DB085D402586E41F4F6529E73F /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				106D6F0D3052D91500111FE4 /* CoupleCalender */,
+				630F27F01BC746D4AF4F7052BDC62529 /* Shared */,
 			);
 			name = CoupleCalender;
 			packageProductDependencies = (
@@ -180,6 +214,29 @@
 			productReference = 106D6F223052D91500111FE4 /* CoupleCalenderUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		F94BE6ED5F2A468DB2548AB9691B4EE2 /* CoupleCalenderWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9743D4202D9247CCA84BA34CE196E452 /* Build configuration list for PBXNativeTarget "CoupleCalenderWidget" */;
+			buildPhases = (
+				0F2E914971414836A25213159C2167FA /* Sources */,
+				B59826AFC7DB4C499BB8D3875950E31E /* Frameworks */,
+				E630A875315C41758FB734B3A68D6814 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				9A3A20359DB04CECA085E51FA9E1D531 /* CoupleCalenderWidget */,
+				630F27F01BC746D4AF4F7052BDC62529 /* Shared */,
+			);
+			name = CoupleCalenderWidget;
+			packageProductDependencies = (
+			);
+			productName = CoupleCalenderWidget;
+			productReference = 4ED478D4CF114730A1D8165F78F46A07 /* CoupleCalenderWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -201,6 +258,9 @@
 						CreatedOnToolsVersion = 26.1.1;
 						TestTargetID = 106D6F0A3052D91500111FE4;
 					};
+					F94BE6ED5F2A468DB2548AB9691B4EE2 = {
+						CreatedOnToolsVersion = 26.1.1;
+					};
 				};
 			};
 			buildConfigurationList = 106D6F063052D91500111FE4 /* Build configuration list for PBXProject "CoupleCalender" */;
@@ -221,6 +281,7 @@
 			projectRoot = "";
 			targets = (
 				106D6F0A3052D91500111FE4 /* CoupleCalender */,
+				F94BE6ED5F2A468DB2548AB9691B4EE2 /* CoupleCalenderWidget */,
 				106D6F173052D91500111FE4 /* CoupleCalenderTests */,
 				106D6F213052D91500111FE4 /* CoupleCalenderUITests */,
 			);
@@ -243,6 +304,24 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		106D6F203052D91500111FE4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FDDC76041AE84C4A8DED7CE6D3E114CB /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				8205061BC80541308A97855D7DF9F6DF /* CoupleCalenderWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E630A875315C41758FB734B3A68D6814 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -273,6 +352,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		0F2E914971414836A25213159C2167FA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -285,6 +371,11 @@
 			isa = PBXTargetDependency;
 			target = 106D6F0A3052D91500111FE4 /* CoupleCalender */;
 			targetProxy = 106D6F233052D91500111FE4 /* PBXContainerItemProxy */;
+		};
+		535CB4DB085D402586E41F4F6529E73F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F94BE6ED5F2A468DB2548AB9691B4EE2 /* CoupleCalenderWidget */;
+			targetProxy = 32D81A947DA4467490DCC4BCCDBF124D /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -325,6 +416,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				APP_GROUP_IDENTIFIER = group.asa.CoupleCalender;
 				DEVELOPMENT_TEAM = Y35SHANXGY;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -390,6 +482,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				APP_GROUP_IDENTIFIER = group.asa.CoupleCalender;
 				DEVELOPMENT_TEAM = Y35SHANXGY;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -566,6 +659,63 @@
 			};
 			name = Release;
 		};
+		6066C3C0E8A4435998A9EDEE967D743B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CoupleCalenderWidget/CoupleCalenderWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Y35SHANXGY;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Config/CoupleCalenderWidget-Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = asa.CoupleCalender.CoupleCalenderWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C0019866BA9D45BDA2D63853971DE5BC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CoupleCalenderWidget/CoupleCalenderWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Y35SHANXGY;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Config/CoupleCalenderWidget-Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = asa.CoupleCalender.CoupleCalenderWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -601,6 +751,15 @@
 			buildConfigurations = (
 				106D6F333052D91500111FE4 /* Debug */,
 				106D6F343052D91500111FE4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9743D4202D9247CCA84BA34CE196E452 /* Build configuration list for PBXNativeTarget "CoupleCalenderWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6066C3C0E8A4435998A9EDEE967D743B /* Debug */,
+				C0019866BA9D45BDA2D63853971DE5BC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

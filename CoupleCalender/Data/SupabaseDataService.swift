@@ -63,6 +63,18 @@ final class SupabaseDataService {
             .value
     }
 
+    func fetchRecentMemories(ownerID: UUID, limit: Int = 7) async throws -> [Memory] {
+        guard limit > 0 else { return [] }
+        return try await client
+            .from("memories")
+            .select()
+            .eq("owner_id", value: ownerID.uuidString)
+            .order("calendar_day", ascending: false)
+            .limit(limit)
+            .execute()
+            .value
+    }
+
     func fetchReactionCatalog() async throws -> [ReactionCatalogItem] {
         try await client
             .from("reaction_catalog")
