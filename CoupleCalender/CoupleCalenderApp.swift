@@ -9,6 +9,7 @@ import SwiftUI
 
 @main
 struct CoupleCalenderApp: App {
+    @UIApplicationDelegateAdaptor(CoupleCalenderAppDelegate.self) private var appDelegate
     private let dependencies: AppDependencies
     @State private var sessionStore: AppSessionStore?
 

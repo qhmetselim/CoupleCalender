@@ -15,6 +15,7 @@ final class AppSessionStore {
     }
 
     private let dataService: SupabaseDataService
+    let pushNotifications: PushNotificationManager
     private var authObservationTask: Task<Void, Never>?
     private var currentSession: Session?
     private var hasStarted = false
@@ -26,6 +27,7 @@ final class AppSessionStore {
 
     init(dataService: SupabaseDataService) {
         self.dataService = dataService
+        self.pushNotifications = PushNotificationManager(dataService: dataService)
     }
 
     var supabaseDataService: SupabaseDataService { dataService }
@@ -33,6 +35,7 @@ final class AppSessionStore {
     func start() {
         guard !hasStarted else { return }
         hasStarted = true
+        pushNotifications.start()
 
         let authStateChanges = dataService.client.auth.authStateChanges
         authObservationTask = Task { [weak self, authStateChanges] in
@@ -98,6 +101,7 @@ final class AppSessionStore {
     }
 
     func signOut() async {
+        await pushNotifications.removeCurrentDeviceToken()
         do {
             try await dataService.client.auth.signOut()
         } catch {
@@ -236,6 +240,7 @@ final class AppSessionStore {
             default:
                 throw PairingStateError.invalidStatus
             }
+            await pushNotifications.syncDeviceTokenIfPossible()
             clearMessage()
         } catch {
             state = .recoverableError(message: "Uygulama durumu yüklenemedi. Lütfen tekrar dene.")

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Supabase
 import Testing
 @testable import CoupleCalender
 
@@ -144,6 +145,59 @@ struct CoupleCalenderTests {
         #expect(Set(keys).count == keys.count)
         #expect(DayColorPalette.color(for: "rose") != DayColorPalette.color(for: "unknown"))
         #expect(DayColorPalette.label(for: "blue") == "Mavi")
+    }
+
+    @Test func realtimeMemoryBroadcastParsesAsAnIdempotentDomainEvent() throws {
+        let memory = Memory(
+            id: try #require(UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")),
+            ownerID: try #require(UUID(uuidString: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb")),
+            calendarDay: CalendarDay(rawValue: "2026-09-10"),
+            content: "Bugün",
+            createdAt: Date(timeIntervalSince1970: 1),
+            updatedAt: Date(timeIntervalSince1970: 1)
+        )
+        let record = try JSONObject(memory)
+        let change: JSONObject = [
+            "schema": "public",
+            "table": "memories",
+            "eventType": "INSERT",
+            "new": .object(record),
+            "old": .null
+        ]
+        let payload: JSONObject = [
+            "event": "INSERT",
+            "type": "broadcast",
+            "payload": .object(change)
+        ]
+
+        guard case let .memoryUpsert(parsed) = CoupleRealtimeChangeParser.parse(payload) else {
+            Issue.record("Expected an INSERT memory change")
+            return
+        }
+
+        #expect(parsed.id == memory.id)
+        #expect(parsed.calendarDay == memory.calendarDay)
+        #expect(parsed.content == memory.content)
+    }
+
+    @Test func notificationNavigationRejectsMalformedOrMissingDate() throws {
+        let ownerID = try #require(UUID(uuidString: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"))
+        let memoryID = try #require(UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"))
+        let valid: [AnyHashable: Any] = [
+            "type": "memory_created",
+            "memory_id": memoryID.uuidString,
+            "calendar_day": "2026-09-10",
+            "calendar_owner_id": ownerID.uuidString
+        ]
+        let invalid = [
+            "type": "memory_created",
+            "memory_id": memoryID.uuidString,
+            "calendar_day": "2026-02-30",
+            "calendar_owner_id": ownerID.uuidString
+        ] as [AnyHashable: Any]
+
+        #expect(NotificationNavigationTarget(userInfo: valid) != nil)
+        #expect(NotificationNavigationTarget(userInfo: invalid) == nil)
     }
 
 }

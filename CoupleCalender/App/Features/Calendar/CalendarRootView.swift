@@ -2,10 +2,13 @@ import SwiftUI
 
 struct CalendarRootView: View {
     let sessionStore: AppSessionStore
+    let coupleID: UUID
+    @Environment(\.scenePhase) private var scenePhase
     @State private var calendarStore: CalendarStore
 
-    init(sessionStore: AppSessionStore, profile: Profile, partner: Profile) {
+    init(sessionStore: AppSessionStore, profile: Profile, partner: Profile, coupleID: UUID) {
         self.sessionStore = sessionStore
+        self.coupleID = coupleID
         _calendarStore = State(initialValue: CalendarStore(
             dataService: sessionStore.supabaseDataService,
             profile: profile,
@@ -18,6 +21,8 @@ struct CalendarRootView: View {
 
         NavigationStack {
             VStack(spacing: 12) {
+                notificationPermissionOffer
+
                 Picker("Takvim sahibi", selection: $calendarStore.owner) {
                     ForEach(CalendarOwner.allCases) { owner in
                         Text(owner.title).tag(owner)
@@ -60,7 +65,59 @@ struct CalendarRootView: View {
         .task(id: calendarStore.visiblePeriodKey) {
             await calendarStore.loadVisiblePeriod()
         }
+        .task(id: coupleID) {
+            await calendarStore.startRealtime(coupleID: coupleID)
+        }
+        .task(id: sessionStore.pushNotifications.navigationRevision) {
+            await applyPendingNotificationNavigation()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task {
+                await calendarStore.startRealtime(coupleID: coupleID)
+                await calendarStore.reloadCurrentPeriod()
+            }
+        }
+        .onDisappear {
+            Task { await calendarStore.stopRealtime() }
+        }
         .refreshable {
+            await calendarStore.reloadCurrentPeriod()
+        }
+    }
+
+    @ViewBuilder
+    private var notificationPermissionOffer: some View {
+        if sessionStore.pushNotifications.shouldShowPermissionOffer {
+            VStack(alignment: .leading, spacing: 8) {
+                Label("Partnerin yeni bir anı eklediğinde haber almak ister misin?", systemImage: "bell.badge")
+                    .font(.subheadline.weight(.semibold))
+                HStack {
+                    Button("Bildirimleri Aç") {
+                        Task { await sessionStore.pushNotifications.requestAuthorization() }
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Button("Şimdi Değil") {
+                        sessionStore.pushNotifications.dismissPermissionOffer()
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+        }
+    }
+
+    private func applyPendingNotificationNavigation() async {
+        guard let target = sessionStore.pushNotifications.consumePendingNavigation(
+            validatingPartnerID: calendarStore.partner.id
+        ) else { return }
+
+        let previousKey = calendarStore.visiblePeriodKey
+        calendarStore.openNotificationTarget(target)
+        if previousKey == calendarStore.visiblePeriodKey {
             await calendarStore.reloadCurrentPeriod()
         }
     }

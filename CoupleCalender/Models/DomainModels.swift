@@ -304,6 +304,50 @@ struct DeviceToken: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
+struct RegisterDeviceTokenParameters: Encodable, Sendable {
+    let inputToken: String
+    let inputEnvironment: String
+    let inputAppVersion: String?
+
+    enum CodingKeys: String, CodingKey {
+        case inputToken = "input_token"
+        case inputEnvironment = "input_environment"
+        case inputAppVersion = "input_app_version"
+    }
+}
+
+struct RemoveDeviceTokenParameters: Encodable, Sendable {
+    let inputToken: String
+
+    enum CodingKeys: String, CodingKey {
+        case inputToken = "input_token"
+    }
+}
+
+struct NotificationNavigationTarget: Equatable, Sendable {
+    let memoryID: UUID
+    let calendarDay: CalendarDay
+    let calendarOwnerID: UUID
+
+    init?(userInfo: [AnyHashable: Any]) {
+        guard let type = userInfo["type"] as? String,
+              type == "memory_created",
+              let memoryValue = userInfo["memory_id"] as? String,
+              let memoryID = UUID(uuidString: memoryValue),
+              let dayValue = userInfo["calendar_day"] as? String,
+              let calendarDay = try? CalendarDay(iso8601: dayValue),
+              let ownerValue = userInfo["calendar_owner_id"] as? String,
+              let calendarOwnerID = UUID(uuidString: ownerValue)
+        else {
+            return nil
+        }
+
+        self.memoryID = memoryID
+        self.calendarDay = calendarDay
+        self.calendarOwnerID = calendarOwnerID
+    }
+}
+
 struct MonthlyReport: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     let userID: UUID

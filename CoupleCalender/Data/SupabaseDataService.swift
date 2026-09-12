@@ -224,4 +224,32 @@ final class SupabaseDataService {
             .rpc("leave_active_couple")
             .execute()
     }
+
+    func registerDeviceToken(
+        token: String,
+        environment: String,
+        appVersion: String?
+    ) async throws -> DeviceToken {
+        try await client
+            .rpc(
+                "register_device_token",
+                params: RegisterDeviceTokenParameters(
+                    inputToken: token,
+                    inputEnvironment: environment,
+                    inputAppVersion: appVersion
+                )
+            )
+            .single()
+            .execute()
+            .value
+    }
+
+    func removeDeviceToken(token: String) async throws {
+        _ = try await client
+            .rpc(
+                "remove_device_token",
+                params: RemoveDeviceTokenParameters(inputToken: token)
+            )
+            .execute()
+    }
 }

@@ -416,9 +416,11 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 106D6F3D3052E00000111FE4 /* Base.xcconfig */;
 			buildSettings = {
+				APS_ENVIRONMENT = development;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_ENTITLEMENTS = CoupleCalender/CoupleCalender.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = Y35SHANXGY;
 				ENABLE_PREVIEWS = YES;
@@ -449,9 +451,11 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 106D6F3D3052E00000111FE4 /* Base.xcconfig */;
 			buildSettings = {
+				APS_ENVIRONMENT = production;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_ENTITLEMENTS = CoupleCalender/CoupleCalender.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = Y35SHANXGY;
 				ENABLE_PREVIEWS = YES;

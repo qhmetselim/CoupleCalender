@@ -9,6 +9,7 @@ final class CalendarStore {
     let engine: CalendarEngine
 
     private let dataService: SupabaseDataService
+    private let realtimeCoordinator: CoupleRealtimeCoordinator
     private let profileID: UUID
     private let partnerID: UUID
     private var memoryCache: [MemoryRangeKey: [Memory]] = [:]
@@ -45,6 +46,7 @@ final class CalendarStore {
         self.profileID = profile.id
         self.partnerID = partner.id
         self.engine = CalendarEngine(calendar: calendar)
+        self.realtimeCoordinator = CoupleRealtimeCoordinator(client: dataService.client)
         self.selectedDate = CalendarDay(date: Date(), calendar: calendar)
     }
 
@@ -112,6 +114,21 @@ final class CalendarStore {
 
     func select(_ day: CalendarDay) {
         selectedDate = day
+    }
+
+    func openNotificationTarget(_ target: NotificationNavigationTarget) {
+        guard target.calendarOwnerID == partnerID else { return }
+        owner = .partner
+        mode = .day
+        selectedDate = target.calendarDay
+    }
+
+    func startRealtime(coupleID: UUID) async {
+        await realtimeCoordinator.start(coupleID: coupleID, store: self)
+    }
+
+    func stopRealtime() async {
+        await realtimeCoordinator.stop()
     }
 
     func showMonth(containing day: CalendarDay) {
@@ -533,6 +550,33 @@ final class CalendarStore {
         dayColors.removeAll { $0.calendarOwnerID == ownerID && $0.calendarDay == day && $0.assignedByID == assignedByID }
     }
 
+    func applyRealtimeChange(_ change: CoupleRealtimeChange) {
+        switch change {
+        case let .memoryUpsert(memory):
+            guard isKnownCalendarOwner(memory.ownerID) else { return }
+            applyUpdatedMemory(memory)
+        case let .memoryDelete(memory):
+            guard isKnownCalendarOwner(memory.ownerID) else { return }
+            applyDeletedMemory(memory)
+        case let .reactionUpsert(reaction):
+            guard isAuthorizedReaction(reaction) else { return }
+            applyReactionUpsert(reaction)
+        case let .reactionDelete(reaction):
+            guard isAuthorizedReaction(reaction) else { return }
+            applyReactionRemoval(memoryID: reaction.memoryID, reactorID: reaction.reactorID)
+        case let .dayColorUpsert(color):
+            guard isAuthorizedDayColor(color) else { return }
+            applyDayColorUpsert(color)
+        case let .dayColorDelete(color):
+            guard isAuthorizedDayColor(color) else { return }
+            applyDayColorRemoval(
+                ownerID: color.calendarOwnerID,
+                day: color.calendarDay,
+                assignedByID: color.assignedByID
+            )
+        }
+    }
+
     private func upserting(_ reaction: MemoryReaction, into reactions: [MemoryReaction]) -> [MemoryReaction] {
         var result = reactions
         if let index = result.firstIndex(where: { $0.memoryID == reaction.memoryID && $0.reactorID == reaction.reactorID }) {
@@ -566,6 +610,27 @@ final class CalendarStore {
     private func isDuplicateMemoryError(_ error: Error) -> Bool {
         let value = error.localizedDescription.lowercased()
         return value.contains("duplicate key") || value.contains("memories_owner_id_calendar_day_key")
+    }
+
+    private func isKnownCalendarOwner(_ ownerID: UUID) -> Bool {
+        ownerID == profileID || ownerID == partnerID
+    }
+
+    private func isAuthorizedReaction(_ reaction: MemoryReaction) -> Bool {
+        guard let memory = memoryCache.values.flatMap({ $0 }).first(where: { $0.id == reaction.memoryID })
+                ?? memories.first(where: { $0.id == reaction.memoryID })
+        else {
+            return false
+        }
+
+        let expectedReactorID = memory.ownerID == profileID ? partnerID : profileID
+        return isKnownCalendarOwner(memory.ownerID) && reaction.reactorID == expectedReactorID
+    }
+
+    private func isAuthorizedDayColor(_ color: DayColor) -> Bool {
+        guard isKnownCalendarOwner(color.calendarOwnerID) else { return false }
+        let expectedAssignerID = color.calendarOwnerID == profileID ? partnerID : profileID
+        return color.assignedByID == expectedAssignerID
     }
 }
 
